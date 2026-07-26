@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+
+# local tooling
+.claude/
+
+# Python
+discord-bot/venv/
+discord-bot/__pycache__/
+**/__pycache__/
+*.pyc
+
+# secrets / local runtime state — never commit tokens or live user data
+discord-bot/.env
+*.env
+discord-bot/collections.json

@@ -1,0 +1,302 @@
+{
+ "variants": [
+  "Normal",
+  "Gold",
+  "Gummy",
+  "Galaxy",
+  "Holofoil",
+  "Cube",
+  "Gem",
+  "Quack"
+ ],
+ "sprites": [
+  {
+   "key": "Water",
+   "name": "Water",
+   "rarity": "Rare",
+   "element": "Water",
+   "desc": "A bubbly aquatic Sprite that restores shields for you and nearby squadmates while you are in water.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil",
+    "Gem"
+   ]
+  },
+  {
+   "key": "Earth",
+   "name": "Earth",
+   "rarity": "Rare",
+   "element": "Earth",
+   "desc": "A mossy, rock-and-tree Sprite that increases the chance of extra rare items from chests.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube",
+    "Gem"
+   ]
+  },
+  {
+   "key": "Fire",
+   "name": "Fire",
+   "rarity": "Rare",
+   "element": "Fire",
+   "desc": "A fiery Sprite that creates a damaging burst after you deal enough damage to an enemy.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil",
+    "Cube"
+   ]
+  },
+  {
+   "key": "Fishy",
+   "name": "Fishy",
+   "rarity": "Rare",
+   "element": "Fish",
+   "desc": "An aquatic Fishstick-themed Sprite that boosts swimming speed and briefly speeds you up when damaged.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube"
+   ]
+  },
+  {
+   "key": "Air",
+   "name": "Air",
+   "rarity": "Rare",
+   "element": "Air",
+   "desc": "A wind Sprite that improves sprint speed and jump height and negates fall damage.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil"
+   ]
+  },
+  {
+   "key": "Ghost",
+   "name": "Ghost",
+   "rarity": "Epic",
+   "element": "Ghost",
+   "desc": "A spectral utility Sprite that briefly cloaks its owner after reloading.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil"
+   ]
+  },
+  {
+   "key": "ZeroPoint",
+   "name": "Zero Point",
+   "rarity": "Mythic",
+   "element": "Zero Point",
+   "desc": "A reality-energy Sprite that creates a Shield Bubble Jr. when you use a healing item on yourself.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Gem",
+    "Quack"
+   ]
+  },
+  {
+   "key": "Seven",
+   "name": "Seven",
+   "rarity": "Legendary",
+   "element": "The Seven",
+   "desc": "A Seven-themed Sprite that reveals enemy foot trails to your squad.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil"
+   ]
+  },
+  {
+   "key": "King",
+   "name": "King",
+   "rarity": "Epic",
+   "element": "Royal",
+   "desc": "A crowned Sprite that increases the damage dealt by your Pickaxe.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil"
+   ]
+  },
+  {
+   "key": "Boss",
+   "name": "Boss",
+   "rarity": "Legendary",
+   "element": "Boss",
+   "desc": "A powerful companion that boosts its owner's maximum Health and Shield.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube"
+   ]
+  },
+  {
+   "key": "Punk",
+   "name": "Punk",
+   "rarity": "Legendary",
+   "element": "Punk",
+   "desc": "A rebellious Sprite that occasionally grants an unlimited-ammo buff.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube"
+   ]
+  },
+  {
+   "key": "Sleepy",
+   "name": "Dream",
+   "rarity": "Legendary",
+   "element": "Dream",
+   "desc": "A sleepy Sprite that grants a random item at each level and showers Legendary loot at max level.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube"
+   ]
+  },
+  {
+   "key": "Drifter",
+   "name": "Aura",
+   "rarity": "Epic",
+   "element": "Aura",
+   "desc": "An energetic Sprite that grants a Shock Rock charge after you deal enough damage.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Gem"
+   ]
+  },
+  {
+   "key": "Soccer",
+   "name": "Striker",
+   "rarity": "Epic",
+   "element": "Soccer",
+   "desc": "A soccer-themed Sprite that triggers Overdrive when you mantle or hurdle.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil"
+   ]
+  },
+  {
+   "key": "Duck",
+   "name": "Duck",
+   "rarity": "Epic",
+   "element": "Duck",
+   "desc": "A duck-shaped Sprite that replenishes shields while its owner Emotes or Jams.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Gem"
+   ]
+  },
+  {
+   "key": "GrimReaper",
+   "name": "Grim Reaper",
+   "rarity": "Mythic",
+   "element": "Grim Reaper",
+   "desc": "A reaper-themed Sprite that marks players who damage you and reveals them on the map.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Cube"
+   ]
+  },
+  {
+   "key": "RedDemon",
+   "name": "Demon",
+   "rarity": "Epic",
+   "element": "Demon",
+   "desc": "A red demon Sprite that siphons some Health and Shield when you eliminate an opponent.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Gem"
+   ]
+  },
+  {
+   "key": "FossilMeal",
+   "name": "Batman",
+   "rarity": "Mythic",
+   "element": "Batman",
+   "desc": "A Batman-themed Sprite that launches you airborne and lets you deploy the Bat Cape to glide.",
+   "available": [
+    "Normal",
+    "Gold",
+    "Gummy",
+    "Galaxy",
+    "Holofoil",
+    "Cube"
+   ]
+  },
+  {
+   "key": "BurntPeanut",
+   "name": "Burnt Peanut",
+   "rarity": "Mythic",
+   "element": "Loot",
+   "desc": "An unusual goopy Sprite with a chance to drop extra loot, sometimes Mythic, after eliminations.",
+   "available": [
+    "Normal"
+   ]
+  },
+  {
+   "key": "CokeParmesan",
+   "name": "Vini Jr.",
+   "rarity": "Mythic",
+   "element": "Soccer",
+   "desc": "A Vini Jr.-themed Sprite whose sprint powers a destructive slide; slide-kicks boost fire rate and reload speed.",
+   "available": [
+    "Normal"
+   ]
+  },
+  {
+   "key": "CompanyStargazer",
+   "name": "Pollo",
+   "rarity": "Mythic",
+   "element": "Esports",
+   "desc": "A Pollo-themed Sprite that slowly restores Shield to you and nearby squadmates after an elimination.",
+   "available": [
+    "Normal"
+   ]
+  }
+ ],
+ "total": 98
+}

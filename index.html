@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Locker &mdash; Fortnite Variant Tracker</title>
+<style>
+  :root{
+    --bg0:#0a0e2a; --bg1:#131a4a; --panel:#0f1638cc; --panel2:#161f52;
+    --line:#2a3573; --txt:#e8ecff; --dim:#8b97cf; --accent:#3aa8ff;
+    --gold:#ffcf3a; --lost:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI",system-ui,Arial,sans-serif; color:var(--txt);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #2a1b6b55, transparent),
+      radial-gradient(1000px 500px at 0% 0%, #0e2a6b55, transparent),
+      linear-gradient(160deg,var(--bg0),#0a0f30 60%,#0b0a24);
+    min-height:100vh; padding:22px;
+  }
+  .wrap{max-width:1520px;margin:0 auto}
+  .top{
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+    background:linear-gradient(120deg,#12184a,#1a2160);
+    border:1px solid var(--line);border-radius:16px;padding:16px 24px;
+    box-shadow:0 10px 40px #0006;
+  }
+  .ring{position:relative;width:64px;height:64px;flex:0 0 auto}
+  .ring svg{transform:rotate(-90deg)}
+  .ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .title h1{margin:0;font-size:30px;font-weight:900;letter-spacing:1px;font-style:italic}
+  .title h1 b{color:var(--accent)}
+  .title p{margin:2px 0 0;color:var(--dim);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .count{margin-left:auto;font-size:26px;font-weight:900}
+  .count b{color:var(--gold)}.count span{color:var(--dim);font-weight:700;font-size:18px}
+  .count small{display:block;font-size:11px;color:var(--gold);letter-spacing:1px;text-align:right;font-weight:700}
+  .actions{display:flex;gap:10px}
+  button.act{
+    background:#182056;border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:9px 14px;font-weight:700;
+    cursor:pointer;font-size:12px;letter-spacing:.5px;text-transform:uppercase;transition:.15s
+  }
+  button.act:hover{border-color:var(--accent);background:#20296b}
+  button.reset{color:#ff8a8a}
+  button.reset.armed{background:#5a1620;border-color:var(--lost);color:#fff}
+  .toast .undo{cursor:pointer;color:#7fd0ff;text-underline-offset:2px}
+  button.discord{background:#5865F2;border-color:#5865F2;color:#fff}
+  button.discord:hover{background:#4752c4;border-color:#4752c4}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#182056;border:1px solid var(--accent);color:var(--txt);padding:12px 20px;
+    border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 10px 30px #000a;z-index:99;
+    opacity:0;pointer-events:none;transition:.2s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .key{display:flex;gap:20px;flex-wrap:wrap;align-items:center;
+    margin:16px 0;padding:12px 20px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;font-size:12px;
+    text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+  .key .k{display:flex;align-items:center;gap:8px}
+  .swatch{width:22px;height:22px;border-radius:6px;border:1px solid #ffffff22;display:grid;place-items:center;font-size:12px}
+  .sw-owned{background:#123; box-shadow:inset 0 0 0 2px var(--accent)}
+  .sw-master{background:#2a2408;box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+  .sw-lost{background:#2a1114;box-shadow:inset 0 0 0 2px var(--lost);color:var(--lost)}
+  .sw-missing{background:#0c1130;border:1px solid #ffffff14}
+  .sw-na{background:transparent;border:1px dashed #ffffff2e}
+
+  .layout{display:flex;gap:18px;align-items:flex-start}
+  .side{flex:0 0 250px;position:sticky;top:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .card h3{margin:0 0 12px;font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+  .bar{height:9px;border-radius:20px;background:#0c1233;overflow:hidden;margin:6px 0 4px}
+  .bar>i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#3aa8ff,#8ef123)}
+  .statrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--dim)}
+  .statrow b{color:var(--txt)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap}
+  .filters button{flex:1;min-width:64px;background:#141c4c;border:1px solid var(--line);
+    color:var(--dim);border-radius:9px;padding:8px 6px;cursor:pointer;font-weight:700;
+    font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .filters button.on{background:var(--accent);color:#04122b;border-color:var(--accent)}
+  .vlist .vrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--dim)}
+  .vlist .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}
+  .vlist b{color:var(--txt)}
+
+  .gridwrap{flex:1;overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px}
+  table{border-collapse:separate;border-spacing:10px 12px;width:100%}
+  th.vh{color:#081226;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;
+    padding:10px 6px;border-radius:10px;text-align:center;min-width:96px;cursor:help;transition:.15s}
+  th.vh:hover{filter:brightness(1.12);transform:translateY(-1px)}
+
+  .vpop{width:280px}
+  .vpop .vhead{display:flex;gap:14px;align-items:center;padding:14px 16px 10px}
+  .vsample{position:relative;overflow:hidden;width:72px;height:72px;flex:0 0 auto;border-radius:12px;
+    display:grid;place-items:center;background:radial-gradient(120% 120% at 50% 20%,#1a2570,#0b1030 72%);
+    box-shadow:0 0 0 1px #ffffff1f}
+  .vsample img{width:80%;height:80%;object-fit:contain;position:relative;z-index:1}
+  .vsample .fx{opacity:1;border-radius:12px}
+  th.corner{text-align:left;color:var(--dim);font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;padding-left:8px;min-width:150px}
+  td.rowname{font-weight:800;font-size:16px;white-space:nowrap;padding-left:8px}
+  td.rowname .rn{display:flex;align-items:center;gap:10px;cursor:help}
+  td.rowname .pip{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  td.rowname .frac{display:block;font-size:11px;color:var(--dim);font-weight:600;margin-top:3px;letter-spacing:1px}
+  td.rowname .rar{display:inline-block;font-size:9px;padding:1px 6px;border-radius:20px;margin-top:4px;
+    letter-spacing:1px;font-weight:800;text-transform:uppercase}
+
+  .cell{position:relative;width:96px;height:112px;border-radius:14px;margin:0 auto;
+    display:grid;place-items:center;cursor:pointer;user-select:none;transition:.18s;
+    background:linear-gradient(160deg,#0f1740,#0b1030);border:1px solid #ffffff10}
+  .cell img{width:82%;height:82%;object-fit:contain;filter:grayscale(1) brightness(.55);transition:.18s;pointer-events:none;position:relative;z-index:1}
+  .cell.na{cursor:default;border:1px dashed #ffffff22;background:#0a0e2a55}
+  .cell.na::after{content:"";width:26px;height:26px;border-radius:50%;
+    border:2px solid #ffffff22;position:absolute;
+    background:radial-gradient(circle,transparent 40%,#ffffff10 42%)}
+  /* owned */
+  .cell.own img,.cell.master img{filter:none}
+  .cell.own{box-shadow:0 0 0 2px var(--cc), 0 0 22px -4px var(--cc);
+    background:radial-gradient(120% 120% at 50% 20%, var(--cc)22, #0b1030 70%)}
+  /* mastered */
+  .cell.master{box-shadow:0 0 0 2px var(--gold), 0 0 26px -3px var(--gold);
+    background:radial-gradient(120% 120% at 50% 20%, #ffcf3a2e, #0b1030 70%)}
+  /* lost */
+  .cell.lost{box-shadow:inset 0 0 0 2px var(--lost)}
+  .cell.lost img{filter:grayscale(1) brightness(.5) sepia(.4) hue-rotate(-30deg)}
+  .cell .lock{position:absolute;bottom:8px;right:9px;font-size:13px;opacity:.5}
+  .cell.own .lock,.cell.master .lock,.cell.lost .lock{display:none}
+  .cell .chk{position:absolute;top:7px;left:8px;width:17px;height:17px;border-radius:5px;
+    border:1px solid #ffffff2e;display:grid;place-items:center;font-size:11px;color:transparent;background:transparent}
+  .cell.own .chk{background:var(--cc);color:#04122b;border-color:var(--cc);font-weight:900}
+  .cell.own .chk::after{content:"\2713"}
+  .cell .badge{position:absolute;top:6px;right:7px;font-size:14px;display:none;filter:drop-shadow(0 1px 2px #000)}
+  .cell.master .badge{display:block}
+  .cell.master .badge::after{content:"\1F451"}
+  .cell.lost .chk{background:var(--lost);border-color:var(--lost);color:#2a0b0b}
+  .cell.lost .chk::after{content:"\2716";font-weight:900}
+  .cell:not(.na):hover{transform:translateY(-2px)}
+  .cell:not(.na):hover img{filter:grayscale(.25) brightness(.95)}
+  .cell.own:hover img,.cell.master:hover img{filter:none}
+  .cell .chk,.cell .badge,.cell .lock{z-index:4}
+
+  /* ---- variant special effects ---- */
+  .fx{position:absolute;inset:0;border-radius:14px;overflow:hidden;pointer-events:none;
+      z-index:2;opacity:0;transition:opacity .3s}
+  .cell.own .fx,.cell.master .fx,.cell:not(.na):hover .fx{opacity:1}
+  .cell.lost .fx{opacity:0 !important}
+  @keyframes sheen{0%{background-position:135% 0}100%{background-position:-45% 0}}
+  @keyframes holoShift{0%{background-position:135% 0,0 0}100%{background-position:-45% 0,220% 0}}
+  @keyframes twinkle{0%,100%{filter:brightness(.5)}50%{filter:brightness(1.7)}}
+  @keyframes drift{to{transform:rotate(360deg)}}
+  @keyframes glitch{0%,100%{transform:translateX(0)}50%{transform:translateX(1px)}}
+
+  .fx-Normal{mix-blend-mode:screen;background:linear-gradient(115deg,transparent 40%,#ffffff5c 52%,transparent 64%);
+    background-size:250% 250%;animation:sheen 3.6s linear infinite}
+  .fx-Gold{mix-blend-mode:screen;background:linear-gradient(115deg,transparent 32%,#fff6c8 46%,#ffcf3a 50%,transparent 66%);
+    background-size:250% 250%;animation:sheen 2.6s linear infinite}
+  .fx-Gummy{mix-blend-mode:screen;
+    background:radial-gradient(60% 42% at 34% 24%,#ffffffcc,transparent 60%),
+      linear-gradient(115deg,transparent 40%,#ff7ac9 55%,transparent 70%);
+    background-size:auto,250% 250%;animation:sheen 3s linear infinite}
+  .fx-Galaxy{mix-blend-mode:screen;
+    background:radial-gradient(1.6px 1.6px at 20% 30%,#fff,transparent),
+      radial-gradient(1.6px 1.6px at 72% 62%,#d6c7ff,transparent),
+      radial-gradient(1.2px 1.2px at 42% 82%,#fff,transparent),
+      radial-gradient(1.2px 1.2px at 86% 24%,#fff,transparent),
+      radial-gradient(1.6px 1.6px at 56% 14%,#e9d5ff,transparent),
+      radial-gradient(1.2px 1.2px at 12% 66%,#c9b3ff,transparent);
+    animation:twinkle 2.3s ease-in-out infinite}
+  .fx-Holofoil{mix-blend-mode:screen;opacity:.55;
+    background:linear-gradient(115deg,transparent 30%,#ffffff88 50%,transparent 62%),
+      repeating-linear-gradient(115deg,#c65cff55 0 14%,#4fd6ff55 14% 28%,#ffe89955 28% 42%,#7dffc255 42% 56%);
+    background-size:250% 250%,250% 250%;animation:holoShift 4.4s linear infinite}
+  .cell.own .fx-Holofoil,.cell.master .fx-Holofoil,.cell:not(.na):hover .fx-Holofoil{opacity:.55}
+  .fx-Cube{mix-blend-mode:screen;
+    background:repeating-linear-gradient(0deg,#8ef12330 0 2px,transparent 2px 4px),
+      linear-gradient(115deg,transparent 34%,#b6ff5e 50%,transparent 66%);
+    background-size:auto,250% 250%;animation:sheen 2.2s linear infinite,glitch 1.4s steps(2) infinite}
+  .fx-Gem{mix-blend-mode:screen;
+    background:linear-gradient(60deg,#00e5ff5c,transparent 42%),
+      linear-gradient(-60deg,#c77dff5c,transparent 42%),
+      linear-gradient(115deg,transparent 40%,#ffffff 52%,transparent 64%);
+    background-size:auto,auto,250% 250%;animation:sheen 2.4s linear infinite}
+  .fx-Quack{mix-blend-mode:screen;background:linear-gradient(115deg,transparent 34%,#fff1a6 52%,transparent 68%);
+    background-size:250% 250%;animation:sheen 2.8s linear infinite}
+  @media (prefers-reduced-motion: reduce){.fx{animation:none!important}}
+
+  .foot{color:var(--dim);font-size:12px;text-align:center;margin:18px 0 4px}
+
+  /* popup */
+  .pop{position:fixed;z-index:50;width:300px;background:linear-gradient(160deg,#141d54,#0d1338);
+    border:1px solid var(--line);border-radius:14px;padding:0;box-shadow:0 18px 50px #000a;
+    opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .12s,transform .12s}
+  .pop.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  .pop .phead{display:flex;gap:12px;padding:14px 16px 10px;align-items:center}
+  .pop .pimg{position:relative;overflow:hidden;width:56px;height:56px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;
+    background:radial-gradient(120% 120% at 50% 20%,var(--cc,#3aa8ff)33,#0b1030 70%);box-shadow:0 0 0 1px var(--cc,#3aa8ff)55}
+  .pop .pimg img{width:82%;height:82%;object-fit:contain;position:relative;z-index:1}
+  .pop .pimg .fx{opacity:1;border-radius:10px}
+  .pop .pt h4{margin:0;font-size:17px;font-weight:900}
+  .pop .pt .sub{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  .pop .rar{display:inline-block;font-size:9px;padding:2px 8px;border-radius:20px;margin-top:6px;
+    letter-spacing:1px;font-weight:800;text-transform:uppercase}
+  .pop .pbody{padding:0 16px 12px;font-size:12.5px;line-height:1.5;color:#cdd6ff}
+  .pop .pmeta{padding:0 16px 12px;font-size:11px;color:var(--dim)}
+  .pop .pmeta span{color:#d6ddff}
+  .pop .pactions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 14px;border-top:1px solid #ffffff12}
+  .pop .pactions button{border:1px solid var(--line);background:#152060;color:var(--txt);
+    border-radius:9px;padding:8px 4px;font-size:11px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:.4px;transition:.12s}
+  .pop .pactions button:hover{filter:brightness(1.2)}
+  .pop .pactions .b-own{border-color:var(--accent)} .pop .pactions .b-own.on{background:var(--accent);color:#04122b}
+  .pop .pactions .b-master{border-color:var(--gold)} .pop .pactions .b-master.on{background:var(--gold);color:#2a2408}
+  .pop .pactions .b-lost{border-color:var(--lost)} .pop .pactions .b-lost.on{background:var(--lost);color:#2a0b0b}
+  .pop .pactions .b-clear{color:var(--dim)}
+  .pop .phint{font-size:10px;color:var(--dim);text-align:center;padding:0 0 10px;letter-spacing:.3px}
+
+  .r-Rare{background:#12408f;color:#bcd8ff}
+  .r-Epic{background:#5b1e9c;color:#e6ccff}
+  .r-Legendary{background:#8a5a00;color:#ffe6a8}
+  .r-Mythic{background:#7a1420;color:#ffc4c4}
+  .r-Unknown{background:#2a3573;color:#aab6e8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="ring">
+      <svg width="64" height="64"><circle cx="32" cy="32" r="27" stroke="#20305e" stroke-width="7" fill="none"/>
+      <circle id="ringp" cx="32" cy="32" r="27" stroke="#3aa8ff" stroke-width="7" fill="none"
+        stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/></svg>
+      <span id="ringtxt">0%</span>
+    </div>
+    <div class="title">
+      <h1>SPRITE <b>LOCKER</b></h1>
+      <p>Track every variant you've unlocked</p>
+    </div>
+    <div class="count"><b id="own">0</b> <span>/ <i id="tot">0</i></span>
+      <small><span id="mast">0</span> mastered &#128081;</small></div>
+    <div class="actions">
+      <button class="act discord" onclick="copyDiscord()">&#128203; Copy for Discord</button>
+      <button class="act" onclick="markAll('own')">Mark all</button>
+      <button class="act reset" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <div class="key">
+    <span style="color:var(--txt);font-weight:800;letter-spacing:2px">KEY</span>
+    <span class="k"><span class="swatch sw-owned">&#10003;</span>Owned</span>
+    <span class="k"><span class="swatch sw-master">&#128081;</span>Mastered</span>
+    <span class="k"><span class="swatch sw-lost">&#10006;</span>Lost</span>
+    <span class="k"><span class="swatch sw-missing"></span>Missing</span>
+    <span class="k"><span class="swatch sw-na"></span>Not available</span>
+    <span class="k" style="margin-left:auto">Hover for info &amp; options &middot; click to mark &middot; double-click to master</span>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="card">
+        <h3>Collection</h3>
+        <div class="bar"><i id="pbar" style="width:0%"></i></div>
+        <div class="statrow"><span id="pct2">0%</span><span id="frac2">0 / 0</span></div>
+        <div class="statrow" style="margin-top:6px"><span>&#128081; Mastered</span><b id="mast2">0</b></div>
+        <div class="statrow"><span>&#10006; Lost</span><b id="lost2">0</b></div>
+      </div>
+      <div class="card">
+        <h3>Show</h3>
+        <div class="filters" id="filters">
+          <button data-f="all" class="on">All</button>
+          <button data-f="owned">Owned</button>
+          <button data-f="missing">Missing</button>
+          <button data-f="master">Mastered</button>
+          <button data-f="lost">Lost</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>By Variant</h3>
+        <div class="vlist" id="vlist"></div>
+      </div>
+    </aside>
+
+    <div class="gridwrap">
+      <table id="grid"></table>
+    </div>
+  </div>
+  <div class="foot">Fortnite Sprite Locker &middot; fan-made collection tracker &middot; progress stored locally in your browser</div>
+</div>
+
+<!-- hover popup -->
+<div class="pop" id="pop">
+  <div class="phead">
+    <div class="pimg" id="pImg"><img id="pImgI" src="" alt=""><span class="fx" id="pFx"></span></div>
+    <div class="pt">
+      <h4 id="pName">&mdash;</h4>
+      <div class="sub" id="pSub"></div>
+      <span class="rar r-Unknown" id="pRar">&mdash;</span>
+    </div>
+  </div>
+  <div class="pbody" id="pDesc"></div>
+  <div class="pmeta" id="pMeta"></div>
+  <div class="pactions">
+    <button class="b-own"    id="pOwn"    onclick="setStateFromPop('own')">Mark</button>
+    <button class="b-master" id="pMaster" onclick="setStateFromPop('master')">Master</button>
+    <button class="b-lost"   id="pLost"   onclick="setStateFromPop('lost')">Lost</button>
+    <button class="b-clear"  id="pClear"  onclick="setStateFromPop(null)">Clear</button>
+  </div>
+  <div class="phint">Click cell = mark &middot; double-click = master</div>
+</div>
+
+<!-- variant effect popup -->
+<div class="pop vpop" id="vpop">
+  <div class="vhead">
+    <div class="vsample" id="vSample"><img id="vImg" src="" alt=""><span class="fx" id="vFx"></span></div>
+    <div class="pt">
+      <h4 id="vName">&mdash;</h4>
+      <div class="sub">Variant effect</div>
+    </div>
+  </div>
+  <div class="pbody" id="vDesc"></div>
+  <div class="phint">Live preview of the in-game effect</div>
+</div>
+
+<script>
+const DATA = {"variants":["Normal","Gold","Gummy","Galaxy","Holofoil","Cube","Gem","Quack"],"vcolor":{"Normal":"#c7d0dd","Gold":"#ffb300","Gummy":"#ff3d9a","Galaxy":"#a855f7","Holofoil":"#26e0b5","Cube":"#8ef123","Gem":"#38bdf8","Quack":"#ffe14d"},"rows":[{"key":"Water","name":"Water","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_Water_Holofoil_ui_L.webp","Gem":"T_Icon_BR_Creature_Sprite_Water_Gem_ui_L.webp"}},{"key":"Earth","name":"Earth","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Earth_Cube_ui_L.webp","Gem":"T_Icon_BR_Creature_Sprite_Earth_Gem_ui_L.webp"}},{"key":"Fire","name":"Fire","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_Fire_Holofoil_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Fire_Cube_ui_L.webp"}},{"key":"Fishy","name":"Fishy","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Fishy_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Fishy_Cube_L.webp"}},{"key":"Air","name":"Air","cells":{"Normal":"T_Icon_BR_Air_Default_L.webp","Gold":"T_Icon_BR_Air_Gold_L.webp","Gummy":"T_Icon_BR_Air_Candy_L.webp","Galaxy":"T_Icon_BR_Air_Galaxy_L.webp","Holofoil":"T_Icon_BR_Air_Holo_L.webp"}},{"key":"Ghost","name":"Ghost","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Ghost_Gold_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Ghost_Candy_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_Ghost_Holo_L.webp"}},{"key":"ZeroPoint","name":"Zero Point","cells":{"Normal":"T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp","Gem":"T_Icon_BR_Creature_Sprite_ZeroPoint_Gem_ui_L.webp","Quack":"T_Icon_BR_Creature_Sprite_ZeroPoint_Quack_ui_L.webp"}},{"key":"Seven","name":"Seven","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Seven_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Seven_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Seven_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Seven_Galaxy_ui_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_Seven_Holofoil_ui_L.webp"}},{"key":"King","name":"King","cells":{"Normal":"T_Icon_BR_Creature_Sprite_King_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_King_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_King_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_King_Holofoil_ui_L.webp"}},{"key":"Boss","name":"Boss","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Boss_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Boss_Cube_ui_L.webp"}},{"key":"Punk","name":"Punk","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Punk_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Punk_Cube_ui_L.webp"}},{"key":"Sleepy","name":"Dream","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Sleepy_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.webp","Cube":"T_Icon_BR_Creature_Sprite_Sleepy_Cube_ui_L.webp"}},{"key":"Drifter","name":"Aura","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Drifter_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.webp","Gem":"T_Icon_BR_Creature_Sprite_Drifter_Gem_ui_L.webp"}},{"key":"Soccer","name":"Striker","cells":{"Normal":"T_Icon_BR_Creature_Sprite_Soccer_ui_L.webp","Gold":"T_Icon_BR_Creature_Sprite_Soccer_Gold_L.webp","Gummy":"T_Icon_BR_Creature_Sprite_Soccer_Candy_L.webp","Galaxy":"T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.webp","Holofoil":"T_Icon_BR_Creature_Sprite_Soccer_Holofoil_L.webp"}},{"key":"Duck","name":"Duck","cells":{"Normal":"T_Icon_BR_Duck_Default_L.webp","Gold":"T_Icon_BR_Duck_Gold_L.webp","Gummy":"T_Icon_BR_Duck_Candy_L.webp","Galaxy":"T_Icon_BR_Duck_Galaxy_L.webp","Gem":"T_Icon_BR_Duck_Gem_L.webp"}},{"key":"GrimReaper","name":"Grim Reaper","cells":{"Normal":"T_Icon_BR_GrimReaper_Default_L.webp","Gold":"T_Icon_BR_GrimReaper_Gold_L.webp","Gummy":"T_Icon_BR_GrimReaper_Candy_L.webp","Galaxy":"T_Icon_BR_GrimReaper_Galaxy_L.webp","Cube":"T_Icon_BR_GrimReaper_Cube_L.webp"}},{"key":"RedDemon","name":"Demon","cells":{"Normal":"T_Icon_BR_RedDemon_Default_L.webp","Gold":"T_Icon_BR_RedDemon_Gold_L.webp","Gummy":"T_Icon_BR_RedDemon_Candy_L.webp","Galaxy":"T_Icon_BR_RedDemon_Galaxy_L.webp","Gem":"T_Icon_BR_RedDemon_Gem_L.webp"}},{"key":"FossilMeal","name":"Batman","cells":{"Normal":"T_Icon_BR_FossilMeal_Default_L.webp","Gold":"T_Icon_BR_FossilMeal_Gold_L.webp","Gummy":"T_Icon_BR_FossilMeal_Candy_L.webp","Galaxy":"T_Icon_BR_FossilMeal_Galaxy_L.webp","Holofoil":"T_Icon_BR_FossilMeal_Holofoil_L.webp","Cube":"T_Icon_BR_FossilMeal_Cube_L.webp"}},{"key":"BurntPeanut","name":"Burnt Peanut","cells":{"Normal":"T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.webp"}},{"key":"CokeParmesan","name":"Vini Jr.","cells":{"Normal":"T_Icon_BR_CokeParmesan_Default_L.webp"}},{"key":"CompanyStargazer","name":"Pollo","cells":{"Normal":"T_Icon_BR_CompanyStargazer_Default_L.webp"}}],"total":98};
+const INFO = {"Water":{"name":"Water Sprite","rarity":"Rare","element":"Water","desc":"A bubbly aquatic Sprite that restores shields for you and nearby squadmates while you are in water.","howToGet":"Starter choice; also found near water or in Sprite Chests","chapter":"Chapter 6 Season 1; collection version Chapter 7 Season 3"},"Earth":{"name":"Earth Sprite","rarity":"Rare","element":"Earth","desc":"A mossy, rock-and-tree Sprite that increases the chance of extra rare items from chests.","howToGet":"Starter choice; also found in Sprite Chests","chapter":"Chapter 6 Season 1; collection version Chapter 7 Season 3"},"Fire":{"name":"Fire Sprite","rarity":"Rare","element":"Fire","desc":"A fiery Sprite that creates a damaging burst after you deal enough damage to an enemy.","howToGet":"Starter choice; also found in Sprite Chests","chapter":"Chapter 7 Season 3"},"Fishy":{"name":"Fishy Sprite","rarity":"Rare","element":"Fish","desc":"An aquatic Fishstick-themed Sprite that boosts swimming speed and briefly speeds you up when damaged.","howToGet":"Catch while fishing, then extract","chapter":"Chapter 7 Season 3"},"Air":{"name":"Air Sprite","rarity":"Rare","element":"Air","desc":"A wind Sprite that improves sprint speed and jump height and negates fall damage.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 6 Season 1; collection version Chapter 7 Season 3"},"Ghost":{"name":"Ghost Sprite","rarity":"Epic","element":"Ghost","desc":"A spectral utility Sprite that briefly cloaks its owner after reloading.","howToGet":"Spawns at night; extract to unlock","chapter":"Chapter 7 Season 3"},"ZeroPoint":{"name":"Zero Point Sprite","rarity":"Mythic","element":"Zero Point","desc":"A reality-energy Sprite that creates a Shield Bubble Jr. when you use a healing item on yourself.","howToGet":"Rare Sprite Chest find; extract to unlock","chapter":"Chapter 7 Season 3"},"Seven":{"name":"Seven Sprite","rarity":"Legendary","element":"The Seven","desc":"A Seven-themed Sprite that reveals enemy foot trails to your squad.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"King":{"name":"King Sprite","rarity":"Epic","element":"Royal","desc":"A crowned Sprite that increases the damage dealt by your Pickaxe.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"Boss":{"name":"Boss Sprite","rarity":"Legendary","element":"Boss","desc":"A powerful companion that boosts its owner's maximum Health and Shield.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"Punk":{"name":"Punk Sprite","rarity":"Legendary","element":"Punk","desc":"A rebellious Sprite that occasionally grants an unlimited-ammo buff.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"Sleepy":{"name":"Dream Sprite","rarity":"Legendary","element":"Dream","desc":"A sleepy Sprite that grants a random item at each level and showers Legendary loot at max level.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"Drifter":{"name":"Aura Sprite","rarity":"Epic","element":"Aura","desc":"An energetic Sprite that grants a Shock Rock charge after you deal enough damage.","howToGet":"Found in chests and Supply Drops; extract to unlock","chapter":"Chapter 7 Season 3"},"Soccer":{"name":"Striker Sprite","rarity":"Epic","element":"Soccer","desc":"A soccer-themed Sprite that triggers Overdrive when you mantle or hurdle.","howToGet":"Score a goal at the Soccer Pitch, then extract","chapter":"Chapter 7 Season 3"},"Duck":{"name":"Duck Sprite","rarity":"Epic","element":"Duck","desc":"A duck-shaped Sprite that replenishes shields while its owner Emotes or Jams.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"GrimReaper":{"name":"Grim Sprite","rarity":"Mythic","element":"Grim Reaper","desc":"A reaper-themed Sprite that marks players who damage you and reveals them on the map.","howToGet":"Extremely rare Sprite Chest find; extract to unlock","chapter":"Chapter 7 Season 3"},"RedDemon":{"name":"Demon Sprite","rarity":"Epic","element":"Demon","desc":"A red demon Sprite that siphons some Health and Shield when you eliminate an opponent.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"FossilMeal":{"name":"Batman Sprite","rarity":"Mythic","element":"Batman","desc":"A Batman-themed Sprite that launches you airborne and lets you deploy the Bat Cape to glide.","howToGet":"Find in Sprite Chests, then extract","chapter":"Chapter 7 Season 3"},"BurntPeanut":{"name":"Burnt Peanut Sprite","rarity":"Mythic","element":"Loot","desc":"An unusual goopy Sprite with a chance to drop extra loot, sometimes Mythic, after eliminations.","howToGet":"Rare Sprite Chest find; extract to unlock","chapter":"Chapter 7 Season 3"},"CokeParmesan":{"name":"Vini Jr. Sprite","rarity":"Mythic","element":"Soccer","desc":"A Vini Jr.-themed Sprite whose sprint powers a destructive slide; slide-kicks boost fire rate and reload speed.","howToGet":"Unknown","chapter":"Chapter 7 Season 3"},"CompanyStargazer":{"name":"Pollo Sprite","rarity":"Mythic","element":"Esports","desc":"A Pollo-themed Sprite that slowly restores Shield to you and nearby squadmates after an elimination.","howToGet":"Unknown","chapter":"Chapter 7 Season 3"}};
+const VINFO = {
+  Normal:  {t:"Normal",   d:"The base sprite with its standard look — no special finish. This is what you get when you first summon it."},
+  Gold:    {t:"Gold",     d:"A polished gold-plated finish with a metallic gleam that sweeps across the sprite as it moves."},
+  Gummy:   {t:"Gummy",    d:"A translucent gummy-candy texture — glossy, jelly-like, and squishy-looking with a soft inner glow."},
+  Galaxy:  {t:"Galaxy",   d:"A cosmic starfield finish: deep space colours with tiny stars that twinkle across the sprite's body."},
+  Holofoil:{t:"Holofoil", d:"A holographic trading-card foil that shifts through rainbow colours as the light catches it."},
+  Cube:    {t:"Cube",     d:"Corrupted Kevin-the-Cube energy — a glitchy green-and-purple tech shimmer crackling over the sprite."},
+  Gem:     {t:"Gem",      d:"A crystalline gemstone finish with sharp, faceted surfaces that throw off prismatic sparkles."},
+  Quack:   {t:"Quack",    d:"A sunny rubber-duck finish — bright golden-yellow with a warm, glossy glow. The quirkiest variant."},
+};
+const V = DATA.variants, VC = DATA.vcolor, ROWS = DATA.rows, TOTAL = DATA.total;
+const KEY = "spriteLocker.v2";
+let state = {};                 // "s|v" -> "own"|"master"|"lost"
+try{ state = JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ state={}; }
+let filter = "all";
+const ROWMAP = {}; ROWS.forEach(r=>ROWMAP[r.key]=r);
+
+function id(s,v){return s+"|"+v;}
+function st(s,v){return state[id(s,v)]||null;}
+const isCollected = x => x==="own"||x==="master";
+
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function build(){
+  const t = document.getElementById("grid");
+  let h = "<thead><tr><th class='corner'>Sprite</th>";
+  for(const v of V){ h += `<th class='vh' data-v='${v}' style="background:linear-gradient(180deg,${VC[v]},${VC[v]}cc)">${v} &#9432;</th>`; }
+  h += "</tr></thead><tbody>";
+  for(const r of ROWS){
+    const info = INFO[r.key]||{};
+    const rar = (info.rarity||"Unknown").split(" ")[0];
+    h += `<tr data-sprite="${r.key}"><td class='rowname'>
+      <div class='rn' data-info='${r.key}'><span class='pip'></span>
+        <span>${r.name}<span class='frac' data-frac></span>
+        <span class='rar r-${rar}'>${rar}</span></span></div></td>`;
+    for(const v of V){
+      const file = r.cells[v];
+      if(!file){ h += `<td><div class='cell na'></div></td>`; continue; }
+      h += `<td><div class='cell' data-s='${r.key}' data-v='${v}' style="--cc:${VC[v]}">
+        <span class='chk'></span><span class='badge'></span>
+        <img loading="lazy" src="${file}" alt="${r.name} ${v}">
+        <span class='fx fx-${v}'></span>
+        <span class='lock'>&#128274;</span></div></td>`;
+    }
+    h += "</tr>";
+  }
+  h += "</tbody>";
+  t.innerHTML = h;
+
+  t.querySelectorAll(".cell:not(.na)").forEach(c=>{
+    c.addEventListener("click", e=>{ cycle(c.dataset.s,c.dataset.v); });
+    c.addEventListener("dblclick", e=>{ e.preventDefault(); setState(c.dataset.s,c.dataset.v,"master"); });
+    c.addEventListener("mouseenter", ()=>schedulePop(c));
+    c.addEventListener("mouseleave", clearSchedule);
+  });
+  // row name hover -> info popup (no variant)
+  t.querySelectorAll(".rn[data-info]").forEach(rn=>{
+    rn.addEventListener("mouseenter", ()=>schedulePop(rn, rn.dataset.info));
+    rn.addEventListener("mouseleave", clearSchedule);
+  });
+  // column header hover -> variant effect popup
+  t.querySelectorAll("th.vh[data-v]").forEach(th=>{
+    th.addEventListener("mouseenter", ()=>scheduleVar(th));
+    th.addEventListener("mouseleave", clearVarSchedule);
+  });
+  refresh();
+}
+
+// single click cycles: none -> own -> master -> none  (lost only via popup/keep simple)
+function cycle(s,v){
+  const cur=st(s,v);
+  const next = cur==null ? "own" : cur==="own" ? "master" : cur==="master" ? null : null;
+  setState(s,v,next);
+}
+function setState(s,v,val){
+  const k=id(s,v); if(val==null) delete state[k]; else state[k]=val;
+  save(); refresh(); if(popCell) syncPopButtons();
+}
+function markAll(val){
+  state={};
+  if(val){ for(const r of ROWS) for(const v of V) if(r.cells[v]) state[id(r.key,v)]=val; }
+  save(); refresh();
+}
+let resetArmed=false, resetTimer=null, resetBackup=null;
+function resetAll(){
+  if(!Object.keys(state).length){ toast("Nothing to reset — collection is already empty"); return; }
+  if(!resetArmed){
+    resetArmed=true;
+    document.querySelector("button.reset").classList.add("armed");
+    toast("⚠️ Click Reset again to clear everything");
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(disarmReset, 3500);
+    return;
+  }
+  disarmReset();
+  resetBackup=JSON.stringify(state);
+  markAll(null);
+  toastUndo("🧹 Collection cleared", ()=>{
+    if(resetBackup){ state=JSON.parse(resetBackup); resetBackup=null; save(); refresh(); toast("↩️ Restored"); }
+  });
+}
+function disarmReset(){ resetArmed=false; clearTimeout(resetTimer); document.querySelector("button.reset").classList.remove("armed"); }
+
+function refresh(){
+  let coll=0, mast=0, lost=0;
+  const vcount={}; V.forEach(v=>vcount[v]=[0,0]);
+  document.querySelectorAll(".cell:not(.na)").forEach(c=>{
+    const s=st(c.dataset.s,c.dataset.v);
+    c.classList.remove("own","master","lost");
+    if(s) c.classList.add(s);
+    if(isCollected(s)) coll++;
+    if(s==="master") mast++;
+    if(s==="lost") lost++;
+    vcount[c.dataset.v][1]++; if(isCollected(s)) vcount[c.dataset.v][0]++;
+  });
+  document.querySelectorAll("#grid tbody tr").forEach(tr=>{
+    let ro=0,rt=0,rm=0,rl=0;
+    tr.querySelectorAll(".cell:not(.na)").forEach(c=>{rt++;
+      if(c.classList.contains("own")||c.classList.contains("master"))ro++;
+      if(c.classList.contains("master"))rm++;
+      if(c.classList.contains("lost"))rl++;});
+    const f=tr.querySelector("[data-frac]"); if(f) f.textContent = rt? ` ${ro}/${rt}`:"";
+    let show=true;
+    if(filter==="owned")   show = ro>0;
+    if(filter==="missing") show = ro<rt;
+    if(filter==="master")  show = rm>0;
+    if(filter==="lost")    show = rl>0;
+    tr.style.display = show? "":"none";
+  });
+  const pct = TOTAL? Math.round(coll/TOTAL*100):0;
+  document.getElementById("own").textContent=coll;
+  document.getElementById("tot").textContent=TOTAL;
+  document.getElementById("mast").textContent=mast;
+  document.getElementById("ringtxt").textContent=pct+"%";
+  document.getElementById("ringp").style.strokeDashoffset=(169.6*(1-coll/TOTAL)).toFixed(1);
+  document.getElementById("pbar").style.width=pct+"%";
+  document.getElementById("pct2").textContent=pct+"%";
+  document.getElementById("frac2").textContent=coll+" / "+TOTAL;
+  document.getElementById("mast2").textContent=mast;
+  document.getElementById("lost2").textContent=lost;
+  const vl=document.getElementById("vlist");
+  vl.innerHTML=V.map(v=>`<div class='vrow'><span><span class='dot' style="background:${VC[v]}"></span>${v}</span><b>${vcount[v][0]}/${vcount[v][1]}</b></div>`).join("");
+}
+
+document.getElementById("filters").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  filter=b.dataset.f;
+  document.querySelectorAll("#filters button").forEach(x=>x.classList.toggle("on",x===b));
+  refresh();
+});
+
+/* ---------- hover popup ---------- */
+const pop=document.getElementById("pop");
+let popTimer=null, popCell=null, popKey=null, popVariant=null, overPop=false;
+
+function schedulePop(el, spriteKeyOnly){
+  clearTimeout(popTimer);
+  popTimer=setTimeout(()=>showPop(el, spriteKeyOnly), 320);
+}
+function clearSchedule(){
+  clearTimeout(popTimer);
+  popTimer=setTimeout(()=>{ if(!overPop) hidePop(); }, 160);
+}
+function showPop(el, spriteKeyOnly){
+  const s = spriteKeyOnly || el.dataset.s;
+  popKey=s; popVariant = spriteKeyOnly ? null : el.dataset.v;
+  popCell = spriteKeyOnly ? null : el;
+  const r=ROWMAP[s], info=INFO[s]||{};
+  const rar=(info.rarity||"Unknown").split(" ")[0];
+  const firstFile = popVariant ? r.cells[popVariant] : (r.cells[V.find(v=>r.cells[v])]);
+  document.getElementById("pImgI").src = firstFile||"";
+  document.getElementById("pFx").className = "fx" + (popVariant ? " fx-"+popVariant : "");
+  document.getElementById("pImg").style.setProperty("--cc", popVariant?VC[popVariant]:"#3aa8ff");
+  document.getElementById("pName").textContent = info.name || r.name;
+  document.getElementById("pSub").textContent = [popVariant?popVariant+" variant":"", info.element||""].filter(Boolean).join(" · ");
+  const rEl=document.getElementById("pRar"); rEl.textContent=rar; rEl.className="rar r-"+rar;
+  document.getElementById("pDesc").textContent = info.desc || "No description available.";
+  const meta=[];
+  if(info.howToGet && info.howToGet!=="Unknown") meta.push(`How to get: <span>${info.howToGet}</span>`);
+  if(info.chapter) meta.push(`Introduced: <span>${info.chapter}</span>`);
+  document.getElementById("pMeta").innerHTML = meta.join("<br>");
+
+  pop.classList.add("show");
+  positionPop(pop, el);
+  syncPopButtons();
+}
+function positionPop(popEl, el){
+  const rect=el.getBoundingClientRect();
+  const pw=popEl.offsetWidth, ph=popEl.offsetHeight;
+  let left=rect.right+12, top=rect.top;
+  if(left+pw>window.innerWidth-10) left=rect.left-pw-12;
+  if(left<10) left=Math.max(10,(window.innerWidth-pw)/2);
+  if(top+ph>window.innerHeight-10) top=window.innerHeight-ph-10;
+  if(top<10) top=10;
+  popEl.style.left=left+"px"; popEl.style.top=top+"px";
+}
+function hidePop(){ pop.classList.remove("show"); popCell=null; popKey=null; popVariant=null; }
+function syncPopButtons(){
+  const actions=pop.querySelector(".pactions");
+  const cur = popVariant ? st(popKey,popVariant) : null;
+  actions.style.display = popVariant ? "grid" : "none";
+  pop.querySelector(".phint").style.display = popVariant ? "block":"none";
+  document.getElementById("pOwn").classList.toggle("on",cur==="own");
+  document.getElementById("pMaster").classList.toggle("on",cur==="master");
+  document.getElementById("pLost").classList.toggle("on",cur==="lost");
+}
+function setStateFromPop(val){
+  if(!popVariant) return;
+  const cur=st(popKey,popVariant);
+  setState(popKey,popVariant, cur===val ? null : val);
+}
+pop.addEventListener("mouseenter",()=>{overPop=true; clearTimeout(popTimer);});
+pop.addEventListener("mouseleave",()=>{overPop=false; hidePop();});
+window.addEventListener("scroll",()=>{ if(pop.classList.contains("show")) hidePop(); }, true);
+
+/* ---------- variant effect popup ---------- */
+const vpop=document.getElementById("vpop");
+let vTimer=null, overVpop=false;
+function scheduleVar(th){ clearTimeout(vTimer); vTimer=setTimeout(()=>showVarPop(th), 300); }
+function clearVarSchedule(){ clearTimeout(vTimer); vTimer=setTimeout(()=>{ if(!overVpop) hideVarPop(); }, 160); }
+function showVarPop(th){
+  const v=th.dataset.v, vi=VINFO[v]||{t:v,d:""};
+  const sample = (ROWS.find(r=>r.cells[v])||{cells:{}}).cells[v] || "";
+  document.getElementById("vImg").src = sample;
+  document.getElementById("vFx").className = "fx fx-"+v;
+  document.getElementById("vSample").style.background =
+    `radial-gradient(120% 120% at 50% 20%, ${VC[v]}33, #0b1030 72%)`;
+  document.getElementById("vName").textContent = vi.t+" variant";
+  document.getElementById("vDesc").textContent = vi.d;
+  vpop.classList.add("show");
+  positionPop(vpop, th);
+}
+function hideVarPop(){ vpop.classList.remove("show"); }
+vpop.addEventListener("mouseenter",()=>{overVpop=true; clearTimeout(vTimer);});
+vpop.addEventListener("mouseleave",()=>{overVpop=false; hideVarPop();});
+window.addEventListener("scroll",()=>{ if(vpop.classList.contains("show")) hideVarPop(); }, true);
+
+/* ---------- Copy for Discord ---------- */
+function discordText(){
+  const pad = Math.max(...ROWS.map(r=>r.name.length)) + 1;
+  const L=[];
+  L.push("|"+V.map(v=>v.toUpperCase()).join("|"));
+  L.push("✅Have");
+  L.push("👑Mastered");
+  L.push("👻Lost — needs re-summon");
+  L.push("❌Need");
+  L.push("🚫Not available");
+  L.push("-".repeat(27));
+  let coll=0, tot=0;
+  for(const r of ROWS){
+    let cells="";
+    for(const v of V){
+      if(!r.cells[v]){ cells+="|🚫"; continue; }
+      tot++;
+      const s=st(r.key,v);
+      if(s==="master"){ cells+="|👑"; coll++; }
+      else if(s==="own"){ cells+="|✅"; coll++; }
+      else if(s==="lost"){ cells+="|👻"; }
+      else { cells+="|❌"; }
+    }
+    L.push(r.name.padEnd(pad)+cells+"|");
+  }
+  L.push("");
+  L.push(coll+"/"+tot+" collected");
+  return "```\n"+L.join("\n")+"\n```";
+}
+function copyDiscord(){
+  const txt=discordText();
+  const done=ok=>toast(ok?"✅ Copied — paste into Discord!":"Copied to a text box below — select & copy");
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>done(true)).catch(()=>fallbackCopy(txt,done));
+  } else fallbackCopy(txt,done);
+}
+function fallbackCopy(txt,done){
+  const ta=document.createElement("textarea");
+  ta.value=txt; ta.style.cssText="position:fixed;top:20px;left:20px;width:60%;height:60%;z-index:999";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  let ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+  if(ok){ ta.remove(); done(true); } else { done(false); setTimeout(()=>ta.remove(),8000); }
+}
+let toastT=null;
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.style.pointerEvents="none"; el.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2600);
+}
+function toastUndo(msg, undo){
+  const el=document.getElementById("toast");
+  el.innerHTML = msg + " &nbsp;<u class='undo'>Undo</u>";
+  el.style.pointerEvents="auto"; el.classList.add("show");
+  el.querySelector(".undo").onclick=()=>{ undo(); el.classList.remove("show"); };
+  clearTimeout(toastT); toastT=setTimeout(()=>{el.classList.remove("show"); el.style.pointerEvents="none";},6000);
+}
+
+build();
+</script>
+</body>
+</html>
