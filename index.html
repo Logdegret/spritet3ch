@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sprite Locker &mdash; Fortnite Variant Tracker</title>
+<title>Sprite T3CH &mdash; Fortnite Variant Tracker</title>
 <style>
   :root{
     --bg0:#0a0e2a; --bg1:#131a4a; --panel:#0f1638cc; --panel2:#161f52;
@@ -48,6 +48,25 @@
   .toast .undo{cursor:pointer;color:#7fd0ff;text-underline-offset:2px}
   button.discord{background:#5865F2;border-color:#5865F2;color:#fff}
   button.discord:hover{background:#4752c4;border-color:#4752c4}
+  button.sync{border-color:#5865F2;color:#c9cfff}
+  button.sync:hover{background:#5865F2;color:#fff}
+  button.sync.synced{background:#1c2b1c;border-color:#3ad17a;color:#8ef1a8}
+
+  .modal-backdrop{position:fixed;inset:0;background:#00040fcc;backdrop-filter:blur(3px);
+    display:none;place-items:center;z-index:100}
+  .modal-backdrop.show{display:grid}
+  .modal{width:320px;background:linear-gradient(160deg,#141d54,#0d1338);
+    border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 20px 60px #000a}
+  .modal h3{margin:0 0 12px;font-size:18px}
+  .modal p{margin:0 0 12px;font-size:13px;color:var(--dim);line-height:1.5}
+  .modal code{background:#0c1233;padding:2px 6px;border-radius:5px;color:#8ef1a8;font-size:12px}
+  .modal input{width:100%;box-sizing:border-box;background:#0c1233;border:1px solid var(--line);
+    color:var(--txt);border-radius:9px;padding:12px;font-size:20px;letter-spacing:6px;text-align:center;
+    text-transform:uppercase;font-weight:800;margin-bottom:12px}
+  .modal input:focus{outline:none;border-color:var(--accent)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+  .modal-err{color:var(--lost);font-size:12px;min-height:14px;margin:8px 0 0}
+  .modal p b{color:#8ef1a8}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
     background:#182056;border:1px solid var(--accent);color:var(--txt);padding:12px 20px;
     border-radius:12px;font-weight:700;font-size:13px;box-shadow:0 10px 30px #000a;z-index:99;
@@ -230,18 +249,42 @@
       <span id="ringtxt">0%</span>
     </div>
     <div class="title">
-      <h1>SPRITE <b>LOCKER</b></h1>
+      <h1>SPRITE <b>T3CH</b></h1>
       <p>Track every variant you've unlocked</p>
     </div>
     <div class="count"><b id="own">0</b> <span>/ <i id="tot">0</i></span>
       <small><span id="mast">0</span> mastered &#128081;</small></div>
     <div class="actions">
+      <button class="act sync" id="syncBtn" onclick="openSync()">&#128279; Sync with Discord</button>
       <button class="act discord" onclick="copyDiscord()">&#128203; Copy for Discord</button>
       <button class="act" onclick="markAll('own')">Mark all</button>
       <button class="act reset" onclick="resetAll()">Reset</button>
     </div>
   </div>
   <div id="toast" class="toast"></div>
+
+  <!-- sync modal -->
+  <div class="modal-backdrop" id="syncBackdrop">
+    <div class="modal">
+      <h3>Sync with Discord</h3>
+      <div id="syncUnlinked">
+        <p>Run <code>/synccode</code> in Discord, then paste the 6-character code it gives you:</p>
+        <input id="syncInput" maxlength="6" placeholder="ABC123" autocomplete="off" spellcheck="false">
+        <div class="modal-actions">
+          <button class="act" onclick="closeSync()">Cancel</button>
+          <button class="act sync" onclick="submitSync()">Connect</button>
+        </div>
+        <p class="modal-err" id="syncErr"></p>
+      </div>
+      <div id="syncLinked" style="display:none">
+        <p>Synced as <b id="syncName"></b> — your marks now save to Discord too.</p>
+        <div class="modal-actions">
+          <button class="act reset" onclick="unlinkSync()">Disconnect</button>
+          <button class="act sync" onclick="closeSync()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="key">
     <span style="color:var(--txt);font-weight:800;letter-spacing:2px">KEY</span>
@@ -282,7 +325,7 @@
       <table id="grid"></table>
     </div>
   </div>
-  <div class="foot">Fortnite Sprite Locker &middot; fan-made collection tracker &middot; progress stored locally in your browser</div>
+  <div class="foot">Fortnite Sprite T3CH &middot; fan-made collection tracker &middot; progress stored locally in your browser</div>
 </div>
 
 <!-- hover popup -->
@@ -343,7 +386,79 @@ function id(s,v){return s+"|"+v;}
 function st(s,v){return state[id(s,v)]||null;}
 const isCollected = x => x==="own"||x==="master";
 
-function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+/* ---------- Discord sync ---------- */
+const API_BASE = "https://34.132.232.165.sslip.io/api";
+const SYNC_TOKEN_KEY = "spriteLocker.syncToken", SYNC_NAME_KEY = "spriteLocker.syncName";
+let syncToken = localStorage.getItem(SYNC_TOKEN_KEY) || null;
+let syncName  = localStorage.getItem(SYNC_NAME_KEY)  || null;
+let syncPushTimer = null;
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(state));
+  if(syncToken){
+    clearTimeout(syncPushTimer);
+    syncPushTimer = setTimeout(()=>{
+      fetch(API_BASE+"/set", {
+        method:"POST", headers:{"Content-Type":"application/json","X-Sync-Token":syncToken},
+        body: JSON.stringify({state})
+      }).catch(()=>{ /* offline — localStorage still has it, will retry on next change */ });
+    }, 400);
+  }
+}
+
+function updateSyncButton(){
+  const b=document.getElementById("syncBtn");
+  b.classList.toggle("synced", !!syncToken);
+  b.innerHTML = syncToken ? `&#128279; Synced: ${syncName}` : `&#128279; Sync with Discord`;
+}
+async function initSync(){
+  updateSyncButton();
+  if(!syncToken) return;
+  try{
+    const r = await fetch(API_BASE+"/state", {headers:{"X-Sync-Token":syncToken}});
+    const j = await r.json();
+    if(j.ok){ state = j.state || {}; localStorage.setItem(KEY, JSON.stringify(state)); refresh(); }
+    else { syncToken=null; syncName=null; localStorage.removeItem(SYNC_TOKEN_KEY); localStorage.removeItem(SYNC_NAME_KEY); updateSyncButton(); }
+  }catch(e){ toast("⚠️ Could not reach sync server — using local data"); }
+}
+function openSync(){
+  document.getElementById("syncBackdrop").classList.add("show");
+  document.getElementById("syncErr").textContent="";
+  if(syncToken){
+    document.getElementById("syncUnlinked").style.display="none";
+    document.getElementById("syncLinked").style.display="block";
+    document.getElementById("syncName").textContent=syncName;
+  } else {
+    document.getElementById("syncUnlinked").style.display="block";
+    document.getElementById("syncLinked").style.display="none";
+    const inp=document.getElementById("syncInput"); inp.value=""; setTimeout(()=>inp.focus(),50);
+  }
+}
+function closeSync(){ document.getElementById("syncBackdrop").classList.remove("show"); }
+async function submitSync(){
+  const code=document.getElementById("syncInput").value.trim().toUpperCase();
+  const errEl=document.getElementById("syncErr");
+  if(code.length!==6){ errEl.textContent="Enter the 6-character code from /synccode."; return; }
+  try{
+    const r=await fetch(API_BASE+"/redeem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code})});
+    const j=await r.json();
+    if(!j.ok){ errEl.textContent=j.error||"That code didn't work."; return; }
+    syncToken=j.token; syncName=j.display_name;
+    localStorage.setItem(SYNC_TOKEN_KEY, syncToken); localStorage.setItem(SYNC_NAME_KEY, syncName);
+    // push whatever we have locally right now so nothing is lost, then pull merged truth
+    await fetch(API_BASE+"/set",{method:"POST",headers:{"Content-Type":"application/json","X-Sync-Token":syncToken},body:JSON.stringify({state})});
+    await initSync();
+    toast(`✅ Synced as ${syncName}`);
+    openSync();
+  }catch(e){ errEl.textContent="Couldn't reach the sync server. Try again in a moment."; }
+}
+function unlinkSync(){
+  syncToken=null; syncName=null;
+  localStorage.removeItem(SYNC_TOKEN_KEY); localStorage.removeItem(SYNC_NAME_KEY);
+  updateSyncButton(); closeSync(); toast("Disconnected — your marks now stay local only");
+}
+document.getElementById("syncBackdrop").addEventListener("click", e=>{ if(e.target.id==="syncBackdrop") closeSync(); });
+document.getElementById("syncInput")?.addEventListener("keydown", e=>{ if(e.key==="Enter") submitSync(); });
 
 function build(){
   const t = document.getElementById("grid");
@@ -617,6 +732,7 @@ function toastUndo(msg, undo){
 }
 
 build();
+initSync();
 </script>
 </body>
 </html>

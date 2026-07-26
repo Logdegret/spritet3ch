@@ -1,26 +1,42 @@
 """
-Fortnite Sprite Locker — Discord bot
-------------------------------------
+Fortnite Sprite Locker — Discord bot + sync API
+------------------------------------------------
 Slash commands let each Discord user track their own sprite variant collection
 and print it as a formatted code block (ready to paste in a trade thread).
 
-Commands:
-  /collection [user]              Show your collection grid (or another user's).
-  /mark <sprite> <variant> <state>  Set one cell: have / mastered / lost / need.
-  /markrow <sprite> <state>       Set every available variant of a sprite at once.
-  /reset                          Clear your whole collection.
-  /sprite <sprite>                Show info/lore about a sprite.
+This process also runs a small HTTP API (aiohttp) alongside the bot so the web
+tracker (index.html) can read/write the SAME collection data. A user links the
+two with a short-lived one-time code from `/synccode`.
 
-Storage: a simple JSON file (collections.json) keyed by Discord user id.
+Commands:
+  /collection [user]                Show your collection grid (or another user's).
+  /mark <sprite> <variant> <state>  Set one cell: have / mastered / lost / need.
+  /markrow <sprite> <state>         Set every available variant of a sprite at once.
+  /synccode                         Get a one-time code to link the web tracker.
+  /reset                            Clear your whole collection.
+  /sprite <sprite>                  Show info/lore about a sprite.
+
+New members get a DM explaining `/synccode` (requires the "Server Members
+Intent" toggle in the Discord Developer Portal — see README.md).
+
+Storage: JSON files next to this script (collections.json, sessions.json).
 Run:     python bot.py   (needs DISCORD_TOKEN env var — see README.md)
 """
 
 import json
 import os
+import secrets
+import string
+import time
 from pathlib import Path
 
 import discord
+from aiohttp import web
 from discord import app_commands
+
+WEBSITE_URL = "https://logdegret.github.io/FortniteSprites/"
+API_PORT = int(os.environ.get("API_PORT", "8080"))
+SYNC_CODE_TTL = 10 * 60  # seconds
 
 # ---------------------------------------------------------------- data + storage
 BASE = Path(__file__).parent
@@ -30,19 +46,26 @@ SPRITES = DATA["sprites"]                          # list of dicts
 BY_KEY = {s["key"]: s for s in SPRITES}
 TOTAL = DATA["total"]
 
-STORE = BASE / "collections.json"
-_collections = json.loads(STORE.read_text()) if STORE.exists() else {}
+COLL_STORE = BASE / "collections.json"
+SESSION_STORE = BASE / "sessions.json"
+_collections: dict = json.loads(COLL_STORE.read_text()) if COLL_STORE.exists() else {}
+_sessions: dict = json.loads(SESSION_STORE.read_text()) if SESSION_STORE.exists() else {}
+_sync_codes: dict = {}   # code -> {discord_id, display_name, expires}
 
 # symbols used in the exported grid
 SYM = {"own": "✅", "master": "👑", "lost": "👻", "need": "❌", "na": "🚫"}
 STATE_LABEL = {"own": "Have ✅", "master": "Mastered 👑", "lost": "Lost 👻", "need": "Need ❌"}
 
 
-def save():
-    STORE.write_text(json.dumps(_collections, indent=1))
+def save_collections():
+    COLL_STORE.write_text(json.dumps(_collections, indent=1))
 
 
-def user_coll(uid: str) -> dict:
+def save_sessions():
+    SESSION_STORE.write_text(json.dumps(_sessions, indent=1))
+
+
+def user_coll(uid) -> dict:
     return _collections.setdefault(str(uid), {})
 
 
@@ -51,8 +74,19 @@ def cell_state(coll: dict, key: str, variant: str) -> str:
     return coll.get(f"{key}|{variant}", "need")
 
 
+def make_sync_code(discord_id, display_name: str) -> str:
+    # purge expired codes
+    now = time.time()
+    for c in [c for c, v in _sync_codes.items() if v["expires"] < now]:
+        _sync_codes.pop(c, None)
+    alphabet = string.ascii_uppercase.replace("O", "").replace("I", "") + string.digits.replace("0", "").replace("1", "")
+    code = "".join(secrets.choice(alphabet) for _ in range(6))
+    _sync_codes[code] = {"discord_id": str(discord_id), "display_name": display_name, "expires": now + SYNC_CODE_TTL}
+    return code
+
+
 # ---------------------------------------------------------------- grid rendering
-def render_grid(uid: str, display_name: str) -> str:
+def render_grid(uid, display_name: str) -> str:
     coll = user_coll(uid)
     pad = max(len(s["name"]) for s in SPRITES) + 1
     lines = []
@@ -83,6 +117,7 @@ def render_grid(uid: str, display_name: str) -> str:
 
 # ---------------------------------------------------------------- discord client
 intents = discord.Intents.default()
+intents.members = True   # needed for the on-join welcome DM — enable "Server Members Intent" in the dev portal too
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
@@ -100,6 +135,25 @@ STATE_CHOICES = [
 async def on_ready():
     await tree.sync()
     print(f"Logged in as {client.user} — {len(SPRITES)} sprites, {TOTAL} variants.")
+
+
+@client.event
+async def on_member_join(member: discord.Member):
+    try:
+        await member.send(
+            f"👋 Welcome to **{member.guild.name}**!\n\n"
+            f"I track everyone's Fortnite **Sprite** variant collection here, and it syncs with "
+            f"the web tracker so you can see it as a nice grid and copy a trade-ready list.\n\n"
+            f"**To link your web tracker to your Discord collection:**\n"
+            f"1️⃣ Run `/synccode` in the server — I'll give you a one-time code.\n"
+            f"2️⃣ Open {WEBSITE_URL} and click **Sync with Discord**.\n"
+            f"3️⃣ Paste the code in — you're linked!\n\n"
+            f"After that, `/collection`, `/mark`, and `/markrow` here update the exact same "
+            f"collection you see on the website (and vice versa).\n\n"
+            f"Not synced yet? No problem — `/collection` still works and just tracks locally to Discord."
+        )
+    except discord.Forbidden:
+        pass  # member has DMs disabled — nothing we can do
 
 
 @tree.command(name="collection", description="Show a sprite collection grid (yours by default).")
@@ -130,7 +184,7 @@ async def mark(
         coll.pop(k, None)
     else:
         coll[k] = state.value
-    save()
+    save_collections()
     await interaction.response.send_message(
         f"Set **{s['name']} — {variant.value}** → {STATE_LABEL[state.value]}", ephemeral=True
     )
@@ -151,7 +205,7 @@ async def markrow(
             coll.pop(k, None)
         else:
             coll[k] = state.value
-    save()
+    save_collections()
     await interaction.response.send_message(
         f"Set all {len(s['available'])} variants of **{s['name']}** → {STATE_LABEL[state.value]}",
         ephemeral=True,
@@ -176,12 +230,131 @@ async def sprite_info(interaction: discord.Interaction, sprite: app_commands.Cho
 @tree.command(name="reset", description="Clear your entire collection.")
 async def reset(interaction: discord.Interaction):
     _collections[str(interaction.user.id)] = {}
-    save()
+    save_collections()
     await interaction.response.send_message("🧹 Your collection has been cleared.", ephemeral=True)
 
 
-if __name__ == "__main__":
+@tree.command(name="synccode", description="Get a one-time code to link the web tracker to your collection.")
+async def synccode(interaction: discord.Interaction):
+    code = make_sync_code(interaction.user.id, interaction.user.display_name)
+    await interaction.response.send_message(
+        f"🔗 Your sync code: **{code}**\n"
+        f"Open {WEBSITE_URL}, click **Sync with Discord**, and paste this code in.\n"
+        f"It expires in {SYNC_CODE_TTL // 60} minutes and can only be used once.",
+        ephemeral=True,
+    )
+
+
+# ---------------------------------------------------------------- HTTP API (for the website)
+def cors(resp: web.Response) -> web.Response:
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return resp
+
+
+async def handle_options(request: web.Request) -> web.Response:
+    return cors(web.Response())
+
+
+async def handle_health(request: web.Request) -> web.Response:
+    return cors(web.json_response({"ok": True, "sprites": len(SPRITES), "total": TOTAL}))
+
+
+async def handle_redeem(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        code = str(body.get("code", "")).strip().upper()
+    except Exception:
+        return cors(web.json_response({"ok": False, "error": "bad request"}, status=400))
+
+    entry = _sync_codes.get(code)
+    if not entry or entry["expires"] < time.time():
+        _sync_codes.pop(code, None)
+        return cors(web.json_response({"ok": False, "error": "Invalid or expired code."}, status=400))
+
+    _sync_codes.pop(code, None)  # single-use
+    token = secrets.token_urlsafe(24)
+    _sessions[token] = {"discord_id": entry["discord_id"], "display_name": entry["display_name"]}
+    save_sessions()
+    return cors(web.json_response({"ok": True, "token": token, "display_name": entry["display_name"]}))
+
+
+def _session_for(request: web.Request):
+    token = request.headers.get("X-Sync-Token") or request.query.get("token")
+    return token, _sessions.get(token) if token else None
+
+
+async def handle_get_state(request: web.Request) -> web.Response:
+    token, sess = _session_for(request)
+    if not sess:
+        return cors(web.json_response({"ok": False, "error": "Not synced."}, status=401))
+    coll = user_coll(sess["discord_id"])
+    return cors(web.json_response({"ok": True, "display_name": sess["display_name"], "state": coll}))
+
+
+async def handle_set(request: web.Request) -> web.Response:
+    token, sess = _session_for(request)
+    if not sess:
+        return cors(web.json_response({"ok": False, "error": "Not synced."}, status=401))
+    try:
+        body = await request.json()
+    except Exception:
+        return cors(web.json_response({"ok": False, "error": "bad request"}, status=400))
+
+    coll = user_coll(sess["discord_id"])
+    if "key" in body:  # set a single cell
+        k, v = body["key"], body.get("value")
+        if v:
+            coll[k] = v
+        else:
+            coll.pop(k, None)
+    elif "state" in body and isinstance(body["state"], dict):  # bulk replace
+        _collections[str(sess["discord_id"])] = {k: v for k, v in body["state"].items() if v}
+    save_collections()
+    return cors(web.json_response({"ok": True}))
+
+
+async def handle_reset(request: web.Request) -> web.Response:
+    token, sess = _session_for(request)
+    if not sess:
+        return cors(web.json_response({"ok": False, "error": "Not synced."}, status=401))
+    _collections[str(sess["discord_id"])] = {}
+    save_collections()
+    return cors(web.json_response({"ok": True}))
+
+
+def build_web_app() -> web.Application:
+    app = web.Application()
+    routes = [
+        ("GET", "/api/health", handle_health),
+        ("POST", "/api/redeem", handle_redeem),
+        ("GET", "/api/state", handle_get_state),
+        ("POST", "/api/set", handle_set),
+        ("POST", "/api/reset", handle_reset),
+    ]
+    for method, path, handler in routes:
+        app.router.add_route(method, path, handler)
+        app.router.add_route("OPTIONS", path, handle_options)
+    return app
+
+
+async def main():
     token = os.environ.get("DISCORD_TOKEN")
     if not token:
         raise SystemExit("Set the DISCORD_TOKEN environment variable (see README.md).")
-    client.run(token)
+
+    runner = web.AppRunner(build_web_app())
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", API_PORT)
+    await site.start()
+    print(f"Sync API listening on 127.0.0.1:{API_PORT}")
+
+    async with client:
+        await client.start(token)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
