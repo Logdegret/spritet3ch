@@ -14,3 +14,4 @@ discord-bot/__pycache__/
 discord-bot/.env
 *.env
 discord-bot/collections.json
+discord-bot/sessions.json

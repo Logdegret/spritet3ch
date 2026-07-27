@@ -248,7 +248,7 @@ async def synccode(interaction: discord.Interaction):
 # ---------------------------------------------------------------- HTTP API (for the website)
 def cors(resp: web.Response) -> web.Response:
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Sync-Token"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 

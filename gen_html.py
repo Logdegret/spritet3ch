@@ -20,6 +20,7 @@ HTML = r'''<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sprite T3CH &mdash; Fortnite Variant Tracker</title>
+<script src="html2canvas.min.js"></script>
 <style>
   :root{
     --bg0:#0a0e2a; --bg1:#131a4a; --panel:#0f1638cc; --panel2:#161f52;
@@ -105,6 +106,12 @@ HTML = r'''<!DOCTYPE html>
   .side{flex:0 0 250px;position:sticky;top:22px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
   .card h3{margin:0 0 12px;font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+  .card summary{margin:0 0 12px;font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;
+    cursor:pointer;list-style:none}
+  .card summary::-webkit-details-marker{display:none}
+  .card summary::after{content:"\25BE";float:right;color:var(--dim)}
+  .card details[open] .vlist{margin-top:0}
+  .scroll-hint{display:none;text-align:center;font-size:11px;color:var(--dim);padding:2px 0 8px;letter-spacing:.5px}
   .bar{height:9px;border-radius:20px;background:#0c1233;overflow:hidden;margin:6px 0 4px}
   .bar>i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#3aa8ff,#8ef123)}
   .statrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--dim)}
@@ -114,6 +121,10 @@ HTML = r'''<!DOCTYPE html>
     color:var(--dim);border-radius:9px;padding:8px 6px;cursor:pointer;font-weight:700;
     font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   .filters button.on{background:var(--accent);color:#04122b;border-color:var(--accent)}
+  .toggle-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;
+    color:var(--dim);cursor:pointer;user-select:none}
+  .toggle-row input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  .gridwrap.hide-na .cell.na{visibility:hidden}
   .vlist .vrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--dim)}
   .vlist .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}
   .vlist b{color:var(--txt)}
@@ -221,6 +232,84 @@ HTML = r'''<!DOCTYPE html>
 
   .foot{color:var(--dim);font-size:12px;text-align:center;margin:18px 0 4px}
 
+  .ad-slot{margin:14px 0 0;min-height:90px;border:1px dashed #ffffff22;border-radius:12px;
+    background:#0c1233a0;display:flex;align-items:center;justify-content:center;position:relative}
+  .ad-slot:empty::before,.ad-slot:has(> :only-child:is(.ad-label))::before{
+    content:"Ad slot — Adsterra Native Banner"; color:var(--dim); font-size:11px; letter-spacing:.5px}
+  .ad-label{position:absolute;top:4px;left:8px;font-size:9px;letter-spacing:1px;
+    text-transform:uppercase;color:#5a6699}
+
+  /* ---------------- export image template ---------------- */
+  .xcard{width:900px;padding:44px 50px 36px;font-family:"Segoe UI",system-ui,Arial,sans-serif;
+    background:linear-gradient(170deg,#2e6bf0 0%,#1c3fb0 45%,#0f2170 100%)}
+  .xeyebrow{color:#bcd6ff;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+  .xtitle{color:#fff;font-size:52px;font-weight:900;font-style:italic;letter-spacing:1px;margin:4px 0 6px}
+  .xsub{color:#c3d6ff;font-size:15px;margin-bottom:22px}
+  .xbarwrap{height:10px;border-radius:20px;background:#ffffff2e;overflow:hidden}
+  .xbar{height:100%;border-radius:20px;background:linear-gradient(90deg,#fff,#bcd6ff)}
+  .xcount{color:#fff;font-weight:800;font-size:14px;text-align:right;margin:8px 0 26px}
+  .xhead{display:flex;margin-bottom:10px}
+  .xhead .xnamecol{width:190px;flex:0 0 auto}
+  .xheadcells{display:flex;gap:10px;flex:1}
+  .xheadcells div{flex:1;text-align:center;color:#dbe8ff;font-size:11px;font-weight:800;
+    letter-spacing:1px;text-transform:uppercase;background:#ffffff22;border-radius:8px;padding:8px 2px}
+  .xrow{display:flex;align-items:center;padding:14px 0;border-top:1px solid #ffffff1f}
+  .xname{width:190px;flex:0 0 auto;color:#fff;font-weight:800;font-size:14px;letter-spacing:.5px;
+    display:flex;align-items:center;gap:8px}
+  .xdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .xcells{display:flex;gap:10px;flex:1}
+  .xcell{flex:1;aspect-ratio:1;border-radius:12px;display:grid;place-items:center;position:relative;overflow:hidden}
+  .xcell.xna{background:#ffffff14;color:#6f89c9;font-size:16px}
+  .xcell.xmissing{background:#ffffff1a;box-shadow:inset 0 0 0 1px #ffffff2e}
+  .xcell.xmissing img{width:78%;height:78%;object-fit:contain;filter:grayscale(1) brightness(.4);opacity:.65}
+  .xcell.xmissing::after{content:"\1F512";font-size:17px;opacity:.9;position:absolute;
+    bottom:5px;right:6px;filter:drop-shadow(0 1px 2px #000)}
+  .xcell.xown{background:radial-gradient(120% 120% at 50% 20%, var(--cc)55, #ffffff18 70%);
+    box-shadow:0 0 0 2px var(--cc)}
+  .xcell.xown img{width:78%;height:78%;object-fit:contain}
+  .xcrown{position:absolute;top:-6px;right:-4px;font-size:18px;filter:drop-shadow(0 1px 2px #000)}
+  .xfoot{margin-top:26px;padding-top:18px;border-top:1px solid #ffffff2e;
+    text-align:center;color:#dbe8ff;font-weight:700;font-size:13px;letter-spacing:1px}
+
+  /* ---------------- mobile ---------------- */
+  @media (max-width: 860px){
+    body{padding:10px}
+    .scroll-hint{display:block}
+    .top{padding:12px 14px;gap:12px}
+    .title h1{font-size:22px}
+    .title p{font-size:10px;letter-spacing:1px}
+    .ring{width:52px;height:52px}
+    .ring svg{width:52px;height:52px}
+    .count{margin-left:0;font-size:20px}
+    .actions{width:100%;order:3;flex-wrap:wrap}
+    .actions button{flex:1 1 auto;font-size:11px;padding:10px 8px}
+    .key{gap:10px;font-size:11px;padding:10px 14px}
+    .key .k:last-child{display:none}
+    .layout{flex-direction:column}
+    .side{flex:1 1 auto;position:static;width:100%;order:1;
+      display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .side .card:last-child{grid-column:1 / -1}
+    .gridwrap{order:2;width:100%}
+    .cell{width:66px;height:82px;border-radius:11px}
+    .cell .chk{width:14px;height:14px;font-size:9px}
+    .cell .lock{font-size:11px}
+    table{border-spacing:6px 8px}
+    th.vh{min-width:66px;font-size:10px;padding:8px 3px}
+    th.corner{min-width:96px}
+    td.rowname{font-size:13px}
+    td.rowname .rar{font-size:8px}
+    .pop{width:min(300px, calc(100vw - 24px))}
+    .modal{width:min(320px, calc(100vw - 32px))}
+  }
+  @media (max-width: 520px){
+    .side{grid-template-columns:1fr}
+    .cell{width:58px;height:74px}
+    th.vh{min-width:58px}
+  }
+  @media (hover: none){
+    .cell:not(.na):hover{transform:none}
+  }
+
   /* popup */
   .pop{position:fixed;z-index:50;width:300px;background:linear-gradient(160deg,#141d54,#0d1338);
     border:1px solid var(--line);border-radius:14px;padding:0;box-shadow:0 18px 50px #000a;
@@ -273,6 +362,7 @@ HTML = r'''<!DOCTYPE html>
     <div class="actions">
       <button class="act sync" id="syncBtn" onclick="openSync()">&#128279; Sync with Discord</button>
       <button class="act discord" onclick="copyDiscord()">&#128203; Copy for Discord</button>
+      <button class="act" id="exportBtn" onclick="exportImage()">&#128247; Export Image</button>
       <button class="act" onclick="markAll('own')">Mark all</button>
       <button class="act reset" onclick="resetAll()">Reset</button>
     </div>
@@ -300,6 +390,13 @@ HTML = r'''<!DOCTYPE html>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Ad slot: Adsterra Native Banner -->
+  <div class="ad-slot" id="ad-native-banner">
+    <span class="ad-label">Advertisement</span>
+    <script async="async" data-cfasync="false" src="https://pl30550800.effectivecpmnetwork.com/cb8fc8d61c634a47260db35be939a2ea/invoke.js"></script>
+    <div id="container-cb8fc8d61c634a47260db35be939a2ea"></div>
   </div>
 
   <div class="key">
@@ -330,14 +427,21 @@ HTML = r'''<!DOCTYPE html>
           <button data-f="master">Mastered</button>
           <button data-f="lost">Lost</button>
         </div>
+        <label class="toggle-row">
+          <input type="checkbox" id="hideNA">
+          <span>Hide unreleased (&#128683;)</span>
+        </label>
       </div>
       <div class="card">
-        <h3>By Variant</h3>
-        <div class="vlist" id="vlist"></div>
+        <details open>
+          <summary>By Variant</summary>
+          <div class="vlist" id="vlist"></div>
+        </details>
       </div>
     </aside>
 
     <div class="gridwrap">
+      <div class="scroll-hint">&#8596; swipe to see all variants</div>
       <table id="grid"></table>
     </div>
   </div>
@@ -381,15 +485,17 @@ HTML = r'''<!DOCTYPE html>
 <script>
 const DATA = __DATA__;
 const INFO = __INFO__;
+// Perk data: the sprite's core ability is identical across variants — each variant
+// layers one extra passive perk on top. Cube/Quack per community reporting, less certain.
 const VINFO = {
-  Normal:  {t:"Normal",   d:"The base sprite with its standard look — no special finish. This is what you get when you first summon it."},
-  Gold:    {t:"Gold",     d:"A polished gold-plated finish with a metallic gleam that sweeps across the sprite as it moves."},
-  Gummy:   {t:"Gummy",    d:"A translucent gummy-candy texture — glossy, jelly-like, and squishy-looking with a soft inner glow."},
-  Galaxy:  {t:"Galaxy",   d:"A cosmic starfield finish: deep space colours with tiny stars that twinkle across the sprite's body."},
-  Holofoil:{t:"Holofoil", d:"A holographic trading-card foil that shifts through rainbow colours as the light catches it."},
-  Cube:    {t:"Cube",     d:"Corrupted Kevin-the-Cube energy — a glitchy green-and-purple tech shimmer crackling over the sprite."},
-  Gem:     {t:"Gem",      d:"A crystalline gemstone finish with sharp, faceted surfaces that throw off prismatic sparkles."},
-  Quack:   {t:"Quack",    d:"A sunny rubber-duck finish — bright golden-yellow with a warm, glossy glow. The quirkiest variant."},
+  Normal:  {t:"Normal",   d:"The base finish — no bonus perk. Same core ability as every other variant, just no extra effect on top."},
+  Gold:    {t:"Gold",     d:"Perk: 3× Sprite XP from eliminations. Same core ability as any variant, plus faster Sprite leveling."},
+  Gummy:   {t:"Gummy",    d:"Perk: +20% Sprite Dust earned. Same core ability as any variant, plus more crafting/summoning currency."},
+  Galaxy:  {t:"Galaxy",   d:"Perk: +30% ammo from pickups. Same core ability as any variant, plus more ammo when looting."},
+  Holofoil:{t:"Holofoil", d:"Perk: better odds of finding rare Sprites. Same core ability as any variant, plus improved rare-sprite luck."},
+  Cube:    {t:"Cube",     d:"Perk: grants Storm Overdrive (reported). Same core ability as any variant, plus this Cube-corrupted bonus."},
+  Gem:     {t:"Gem",      d:"Perk: -30% fall damage taken. Same core ability as any variant, plus safer falls."},
+  Quack:   {t:"Quack",    d:"Perk: not yet confirmed by the community. Same core ability as any variant — bonus effect TBA."},
 };
 const V = DATA.variants, VC = DATA.vcolor, ROWS = DATA.rows, TOTAL = DATA.total;
 const KEY = "spriteLocker.v2";
@@ -404,6 +510,7 @@ const isCollected = x => x==="own"||x==="master";
 
 /* ---------- Discord sync ---------- */
 const API_BASE = "https://34.132.232.165.sslip.io/api";
+const SITE_URL = "https://logdegret.github.io/spritet3ch/";
 const SYNC_TOKEN_KEY = "spriteLocker.syncToken", SYNC_NAME_KEY = "spriteLocker.syncName";
 let syncToken = localStorage.getItem(SYNC_TOKEN_KEY) || null;
 let syncName  = localStorage.getItem(SYNC_NAME_KEY)  || null;
@@ -502,11 +609,14 @@ function build(){
   h += "</tbody>";
   t.innerHTML = h;
 
+  const HOVER_OK = matchMedia("(hover: hover) and (pointer: fine)").matches;
   t.querySelectorAll(".cell:not(.na)").forEach(c=>{
     c.addEventListener("click", e=>{ cycle(c.dataset.s,c.dataset.v); });
     c.addEventListener("dblclick", e=>{ e.preventDefault(); setState(c.dataset.s,c.dataset.v,"master"); });
-    c.addEventListener("mouseenter", ()=>schedulePop(c));
-    c.addEventListener("mouseleave", clearSchedule);
+    if(HOVER_OK){
+      c.addEventListener("mouseenter", ()=>schedulePop(c));
+      c.addEventListener("mouseleave", clearSchedule);
+    }
   });
   // row name hover -> info popup (no variant)
   t.querySelectorAll(".rn[data-info]").forEach(rn=>{
@@ -604,6 +714,15 @@ document.getElementById("filters").addEventListener("click",e=>{
   refresh();
 });
 
+const HIDE_NA_KEY="spriteLocker.hideNA";
+const hideNAbox=document.getElementById("hideNA");
+hideNAbox.checked = localStorage.getItem(HIDE_NA_KEY)==="1";
+document.querySelector(".gridwrap").classList.toggle("hide-na", hideNAbox.checked);
+hideNAbox.addEventListener("change", ()=>{
+  document.querySelector(".gridwrap").classList.toggle("hide-na", hideNAbox.checked);
+  localStorage.setItem(HIDE_NA_KEY, hideNAbox.checked ? "1" : "0");
+});
+
 /* ---------- hover popup ---------- */
 const pop=document.getElementById("pop");
 let popTimer=null, popCell=null, popKey=null, popVariant=null, overPop=false;
@@ -642,9 +761,9 @@ function showPop(el, spriteKeyOnly){
 function positionPop(popEl, el){
   const rect=el.getBoundingClientRect();
   const pw=popEl.offsetWidth, ph=popEl.offsetHeight;
-  let left=rect.right+12, top=rect.top;
-  if(left+pw>window.innerWidth-10) left=rect.left-pw-12;
-  if(left<10) left=Math.max(10,(window.innerWidth-pw)/2);
+  let left=rect.left-pw-12, top=rect.top;
+  if(left<10) left=rect.right+12;
+  if(left+pw>window.innerWidth-10) left=Math.max(10,(window.innerWidth-pw)/2);
   if(top+ph>window.innerHeight-10) top=window.innerHeight-ph-10;
   if(top<10) top=10;
   popEl.style.left=left+"px"; popEl.style.top=top+"px";
@@ -690,6 +809,62 @@ vpop.addEventListener("mouseenter",()=>{overVpop=true; clearTimeout(vTimer);});
 vpop.addEventListener("mouseleave",()=>{overVpop=false; hideVarPop();});
 window.addEventListener("scroll",()=>{ if(vpop.classList.contains("show")) hideVarPop(); }, true);
 
+/* ---------- Export Image ---------- */
+const RARITY_DOT = {Rare:"#3aa8ff", Epic:"#b06bff", Legendary:"#ffb300", Mythic:"#ff5c6c", Unknown:"#8b97cf"};
+async function exportImage(){
+  const btn=document.getElementById("exportBtn");
+  const oldTxt=btn.innerHTML; btn.innerHTML="&#8987; Rendering&hellip;"; btn.disabled=true;
+  try{
+    if(typeof html2canvas==="undefined"){ toast("⚠️ Image library failed to load — check your connection"); return; }
+
+    let coll=0, tot=0;
+    const rowsHtml = ROWS.map(r=>{
+      const info=INFO[r.key]||{}; const rar=(info.rarity||"Unknown").split(" ")[0];
+      let cellsHtml="";
+      for(const v of V){
+        const file=r.cells[v];
+        if(!file){ cellsHtml += `<div class="xcell xna">&mdash;</div>`; continue; }
+        tot++;
+        const s=st(r.key,v);
+        if(s==="master"){ coll++; cellsHtml+=`<div class="xcell xown" style="--cc:${VC[v]}"><img src="${file}"><span class="xcrown">&#128081;</span></div>`; }
+        else if(s==="own"){ coll++; cellsHtml+=`<div class="xcell xown" style="--cc:${VC[v]}"><img src="${file}"></div>`; }
+        else { cellsHtml+=`<div class="xcell xmissing"><img src="${file}"></div>`; }
+      }
+      return `<div class="xrow"><div class="xname"><span class="xdot" style="background:${RARITY_DOT[rar]||RARITY_DOT.Unknown}"></span>${r.name.toUpperCase()}</div><div class="xcells">${cellsHtml}</div></div>`;
+    }).join("");
+    const pct = tot? Math.round(coll/tot*100):0;
+
+    const root=document.createElement("div");
+    root.style.cssText="position:fixed;left:-99999px;top:0;";
+    root.innerHTML = `<div class="xcard" id="xcardInner">
+      <div class="xeyebrow">Fortnite Collection Tracker</div>
+      <div class="xtitle">SPRITE T3CH</div>
+      <div class="xsub">Every Fortnite sprite &amp; variant &mdash; collected vs. missing</div>
+      <div class="xbarwrap"><div class="xbar" style="width:${pct}%"></div></div>
+      <div class="xcount">${coll} / ${tot} &middot; ${pct}%</div>
+      <div class="xhead"><div class="xnamecol"></div><div class="xheadcells">${V.map(v=>`<div>${v}</div>`).join("")}</div></div>
+      ${rowsHtml}
+      <div class="xfoot">${SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,"")}</div>
+    </div>`;
+    document.body.appendChild(root);
+    await new Promise(res=>setTimeout(res, 120));
+
+    const canvas = await html2canvas(root.firstElementChild, {backgroundColor:null, scale:2, useCORS:true});
+    root.remove();
+
+    const a=document.createElement("a");
+    a.download = "sprite-t3ch-collection.png";
+    a.href = canvas.toDataURL("image/png");
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("✅ Image downloaded!");
+  }catch(e){
+    toast("⚠️ Couldn't render the image — try again");
+  }finally{
+    btn.innerHTML=oldTxt; btn.disabled=false;
+  }
+}
+window.exportImage = exportImage;
+
 /* ---------- Copy for Discord ---------- */
 function discordText(){
   const pad = Math.max(...ROWS.map(r=>r.name.length)) + 1;
@@ -717,7 +892,7 @@ function discordText(){
   }
   L.push("");
   L.push(coll+"/"+tot+" collected");
-  return "```\n"+L.join("\n")+"\n```";
+  return "```\n"+L.join("\n")+"\n```\nTrack yours: "+SITE_URL;
 }
 function copyDiscord(){
   const txt=discordText();

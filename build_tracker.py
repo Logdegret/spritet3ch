@@ -18,8 +18,8 @@ NAMES = {
  "GrimReaper":"Grim Reaper","RedDemon":"Red Demon","FossilMeal":"Fossil Meal",
  "BurntPeanut":"Burnt Peanut","CokeParmesan":"Coke Parmesan","CompanyStargazer":"Stargazer",
 }
-ORDER = ["Water","Earth","Fire","Fishy","Air","Ghost","ZeroPoint","Seven","King","Boss",
- "Punk","Sleepy","Drifter","Soccer","Duck","GrimReaper","RedDemon","FossilMeal",
+ORDER = ["Water","Earth","Fire","Fishy","Air","Duck","Ghost","RedDemon","King","Drifter",
+ "Soccer","Sleepy","Punk","Boss","Seven","FossilMeal","GrimReaper","ZeroPoint",
  "BurntPeanut","CokeParmesan","CompanyStargazer"]
 
 data = {}  # sprite -> {variant: filename}
