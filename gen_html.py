@@ -392,13 +392,6 @@ HTML = r'''<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Ad slot: Adsterra Native Banner -->
-  <div class="ad-slot" id="ad-native-banner">
-    <span class="ad-label">Advertisement</span>
-    <script async="async" data-cfasync="false" src="https://pl30550800.effectivecpmnetwork.com/cb8fc8d61c634a47260db35be939a2ea/invoke.js"></script>
-    <div id="container-cb8fc8d61c634a47260db35be939a2ea"></div>
-  </div>
-
   <div class="key">
     <span style="color:var(--txt);font-weight:800;letter-spacing:2px">KEY</span>
     <span class="k"><span class="swatch sw-owned">&#10003;</span>Owned</span>
@@ -446,6 +439,13 @@ HTML = r'''<!DOCTYPE html>
     </div>
   </div>
   <div class="foot">Fortnite Sprite T3CH &middot; fan-made collection tracker &middot; progress stored locally in your browser</div>
+
+  <!-- Ad slot: Adsterra Native Banner -->
+  <div class="ad-slot" id="ad-native-banner">
+    <span class="ad-label">Advertisement</span>
+    <script async="async" data-cfasync="false" src="https://pl30550800.effectivecpmnetwork.com/cb8fc8d61c634a47260db35be939a2ea/invoke.js"></script>
+    <div id="container-cb8fc8d61c634a47260db35be939a2ea"></div>
+  </div>
 </div>
 
 <!-- hover popup -->
