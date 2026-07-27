@@ -88,7 +88,8 @@
 
   .layout{display:flex;gap:18px;align-items:flex-start}
   .side{flex:0 0 250px;position:sticky;top:22px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;
+    transform:translateZ(0);-webkit-transform:translateZ(0)}
   .card h3{margin:0 0 12px;font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
   .card summary{margin:0 0 12px;font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;
     cursor:pointer;list-style:none}
@@ -217,7 +218,8 @@
   .foot{color:var(--dim);font-size:12px;text-align:center;margin:18px 0 4px}
 
   .ad-slot{margin:14px 0 0;min-height:90px;border:1px dashed #ffffff22;border-radius:12px;
-    background:#0c1233a0;display:flex;align-items:center;justify-content:center;position:relative}
+    background:#0c1233a0;display:flex;align-items:center;justify-content:center;position:relative;
+    transform:translateZ(0);-webkit-transform:translateZ(0)}
   .ad-slot:empty::before,.ad-slot:has(> :only-child:is(.ad-label))::before{
     content:"Ad slot — Adsterra Native Banner"; color:var(--dim); font-size:11px; letter-spacing:.5px}
   .ad-label{position:absolute;top:4px;left:8px;font-size:9px;letter-spacing:1px;
