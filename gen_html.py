@@ -101,6 +101,7 @@ HTML = r'''<!DOCTYPE html>
   .sw-lost{background:#2a1114;box-shadow:inset 0 0 0 2px var(--lost);color:var(--lost)}
   .sw-missing{background:#0c1130;border:1px solid #ffffff14}
   .sw-na{background:transparent;border:1px dashed #ffffff2e}
+  .sw-soon{background:#0c1130;border:1px solid var(--accent);color:var(--accent);font-size:10px}
 
   .layout{display:flex;gap:18px;align-items:flex-start}
   .side{flex:0 0 250px;position:sticky;top:22px}
@@ -126,10 +127,17 @@ HTML = r'''<!DOCTYPE html>
     color:var(--dim);cursor:pointer;user-select:none}
   .toggle-row input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
   .gridwrap.hide-na .cell.na{visibility:hidden}
-  .gridwrap.hide-na th.unrel,.gridwrap.hide-na td.unrel{display:none}
-  /* datamined, not live yet: previewable but not trackable */
-  .cell.unrel{cursor:default;opacity:.72}
-  .cell.unrel .chk,.cell.unrel .badge,.cell.unrel .lock{display:none}
+  /* datamined, not live yet — trackable, but flagged so the empty cells read as
+     "not out yet" rather than "you failed to collect this" */
+  th.vh.soon{position:relative;padding-bottom:16px}
+  .soontag{position:absolute;left:0;right:0;bottom:3px;font-style:normal;font-size:8px;
+    font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:#04122b99}
+  .cell.soon::before{content:"SOON";position:absolute;top:3px;left:3px;z-index:5;
+    font-size:7px;font-weight:900;letter-spacing:.5px;padding:2px 4px;border-radius:4px;
+    background:#0a0e2acc;color:var(--cc);pointer-events:none}
+  .cell.soon.own::before,.cell.soon.master::before{display:none}
+  .soonmini{font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--accent);vertical-align:1px}
   .vlist .vrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--dim)}
   .vlist .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}
   .vlist b{color:var(--txt)}
@@ -185,15 +193,15 @@ HTML = r'''<!DOCTYPE html>
   .cell.master .badge::after{content:"\1F451"}
   .cell.lost .chk{background:var(--lost);border-color:var(--lost);color:#2a0b0b}
   .cell.lost .chk::after{content:"\2716";font-weight:900}
-  .cell:not(.na):not(.unrel):hover{transform:translateY(-2px)}
-  .cell:not(.na):not(.unrel):hover img{filter:grayscale(.25) brightness(.95)}
+  .cell:not(.na):hover{transform:translateY(-2px)}
+  .cell:not(.na):hover img{filter:grayscale(.25) brightness(.95)}
   .cell.own:hover img,.cell.master:hover img{filter:none}
   .cell .chk,.cell .badge,.cell .lock{z-index:4}
 
   /* ---- variant special effects ---- */
   .fx{position:absolute;inset:0;border-radius:14px;overflow:hidden;pointer-events:none;
       z-index:2;opacity:0;transition:opacity .3s}
-  .cell.own .fx,.cell.master .fx,.cell:not(.na):not(.unrel):hover .fx{opacity:1}
+  .cell.own .fx,.cell.master .fx,.cell:not(.na):hover .fx{opacity:1}
   .cell.lost .fx{opacity:0 !important}
   @keyframes sheen{0%{background-position:135% 0}100%{background-position:-45% 0}}
   @keyframes holoShift{0%{background-position:135% 0,0 0}100%{background-position:-45% 0,220% 0}}
@@ -221,7 +229,7 @@ HTML = r'''<!DOCTYPE html>
     background:linear-gradient(115deg,transparent 30%,#ffffff88 50%,transparent 62%),
       repeating-linear-gradient(115deg,#c65cff55 0 14%,#4fd6ff55 14% 28%,#ffe89955 28% 42%,#7dffc255 42% 56%);
     background-size:250% 250%,250% 250%;animation:holoShift 4.4s linear infinite}
-  .cell.own .fx-Holofoil,.cell.master .fx-Holofoil,.cell:not(.na):not(.unrel):hover .fx-Holofoil{opacity:.55}
+  .cell.own .fx-Holofoil,.cell.master .fx-Holofoil,.cell:not(.na):hover .fx-Holofoil{opacity:.55}
   .fx-Cube{mix-blend-mode:screen;
     background:repeating-linear-gradient(0deg,#8ef12330 0 2px,transparent 2px 4px),
       linear-gradient(115deg,transparent 34%,#b6ff5e 50%,transparent 66%);
@@ -311,7 +319,7 @@ HTML = r'''<!DOCTYPE html>
     th.vh{min-width:58px}
   }
   @media (hover: none){
-    .cell:not(.na):not(.unrel):hover{transform:none}
+    .cell:not(.na):hover{transform:none}
   }
 
   /* popup */
@@ -403,6 +411,7 @@ HTML = r'''<!DOCTYPE html>
     <span class="k"><span class="swatch sw-lost">&#10006;</span>Lost</span>
     <span class="k"><span class="swatch sw-missing"></span>Missing</span>
     <span class="k"><span class="swatch sw-na"></span>Not available</span>
+    <span class="k"><span class="swatch sw-soon">&#128337;</span>Coming soon</span>
     <span class="k" style="margin-left:auto">Hover for info &amp; options &middot; click to mark &middot; double-click to master</span>
   </div>
 
@@ -501,14 +510,12 @@ const VINFO = {
   Gem:     {t:"Gem",      d:"Perk: -30% fall damage taken. Same core ability as any variant, plus safer falls."},
   Quack:   {t:"Quack",    d:"Perk: not yet confirmed by the community. Same core ability as any variant — bonus effect TBA."},
 };
-const V = DATA.variants, VC = DATA.vcolor, ROWS = DATA.rows;
-/* Datamined but not live in-game yet. Still browsable in the grid, kept out of
-   anything shareable. Delete an entry here the day it actually ships. */
-const UNRELEASED_V = ["Gem","Quack"];
-const SHARE_V = V.filter(v=>!UNRELEASED_V.includes(v));
-const isUnrel = v => UNRELEASED_V.includes(v);
-/* Only released variants count toward the ring, so 100% stays reachable. */
-const SHARE_TOTAL = ROWS.reduce((n,r)=>n+SHARE_V.filter(v=>r.cells[v]).length, 0);
+const V = DATA.variants, VC = DATA.vcolor, ROWS = DATA.rows, TOTAL = DATA.total;
+/* Datamined, not live in-game yet: fully trackable, but flagged "coming soon"
+   so nobody reads them as variants they simply failed to collect. Empty this
+   list the day they ship. */
+const SOON_V = ["Gem","Quack"];
+const isSoon = v => SOON_V.includes(v);
 const KEY = "spriteLocker.v2";
 let state = {};                 // "s|v" -> "own"|"master"|"lost"
 try{ state = JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ state={}; }
@@ -597,7 +604,7 @@ document.getElementById("syncInput")?.addEventListener("keydown", e=>{ if(e.key=
 function build(){
   const t = document.getElementById("grid");
   let h = "<thead><tr><th class='corner'>Sprite</th>";
-  for(const v of V){ h += `<th class='vh${isUnrel(v)?" unrel":""}' data-v='${v}' style="background:linear-gradient(180deg,${VC[v]},${VC[v]}cc)">${v} &#9432;</th>`; }
+  for(const v of V){ h += `<th class='vh${isSoon(v)?" soon":""}' data-v='${v}' style="background:linear-gradient(180deg,${VC[v]},${VC[v]}cc)">${v} &#9432;${isSoon(v)?"<i class='soontag'>Coming soon</i>":""}</th>`; }
   h += "</tr></thead><tbody>";
   for(const r of ROWS){
     const info = INFO[r.key]||{};
@@ -608,9 +615,9 @@ function build(){
         <span class='rar r-${rar}'>${rar}</span></span></div></td>`;
     for(const v of V){
       const file = r.cells[v];
-      const u = isUnrel(v) ? " unrel" : "";
-      if(!file){ h += `<td class='${u.trim()}'><div class='cell na${u}'></div></td>`; continue; }
-      h += `<td class='${u.trim()}'><div class='cell${u}' data-s='${r.key}' data-v='${v}' style="--cc:${VC[v]}">
+      const u = isSoon(v) ? " soon" : "";
+      if(!file){ h += `<td><div class='cell na'></div></td>`; continue; }
+      h += `<td><div class='cell${u}' data-s='${r.key}' data-v='${v}' style="--cc:${VC[v]}">
         <span class='chk'></span><span class='badge'></span>
         <img loading="lazy" src="${file}" alt="${r.name} ${v}">
         <span class='fx fx-${v}'></span>
@@ -622,7 +629,7 @@ function build(){
   t.innerHTML = h;
 
   const HOVER_OK = matchMedia("(hover: hover) and (pointer: fine)").matches;
-  t.querySelectorAll(".cell:not(.na):not(.unrel)").forEach(c=>{
+  t.querySelectorAll(".cell:not(.na)").forEach(c=>{
     c.addEventListener("click", e=>{ cycle(c.dataset.s,c.dataset.v); });
     c.addEventListener("dblclick", e=>{ e.preventDefault(); setState(c.dataset.s,c.dataset.v,"master"); });
     if(HOVER_OK){
@@ -680,8 +687,8 @@ function disarmReset(){ resetArmed=false; clearTimeout(resetTimer); document.que
 
 function refresh(){
   let coll=0, mast=0, lost=0;
-  const vcount={}; SHARE_V.forEach(v=>vcount[v]=[0,0]);
-  document.querySelectorAll(".cell:not(.na):not(.unrel)").forEach(c=>{
+  const vcount={}; V.forEach(v=>vcount[v]=[0,0]);
+  document.querySelectorAll(".cell:not(.na)").forEach(c=>{
     const s=st(c.dataset.s,c.dataset.v);
     c.classList.remove("own","master","lost");
     if(s) c.classList.add(s);
@@ -692,7 +699,7 @@ function refresh(){
   });
   document.querySelectorAll("#grid tbody tr").forEach(tr=>{
     let ro=0,rt=0,rm=0,rl=0;
-    tr.querySelectorAll(".cell:not(.na):not(.unrel)").forEach(c=>{rt++;
+    tr.querySelectorAll(".cell:not(.na)").forEach(c=>{rt++;
       if(c.classList.contains("own")||c.classList.contains("master"))ro++;
       if(c.classList.contains("master"))rm++;
       if(c.classList.contains("lost"))rl++;});
@@ -704,19 +711,19 @@ function refresh(){
     if(filter==="lost")    show = rl>0;
     tr.style.display = show? "":"none";
   });
-  const pct = SHARE_TOTAL? Math.round(coll/SHARE_TOTAL*100):0;
+  const pct = TOTAL? Math.round(coll/TOTAL*100):0;
   document.getElementById("own").textContent=coll;
-  document.getElementById("tot").textContent=SHARE_TOTAL;
+  document.getElementById("tot").textContent=TOTAL;
   document.getElementById("mast").textContent=mast;
   document.getElementById("ringtxt").textContent=pct+"%";
-  document.getElementById("ringp").style.strokeDashoffset=(169.6*(1-coll/SHARE_TOTAL)).toFixed(1);
+  document.getElementById("ringp").style.strokeDashoffset=(169.6*(1-coll/TOTAL)).toFixed(1);
   document.getElementById("pbar").style.width=pct+"%";
   document.getElementById("pct2").textContent=pct+"%";
-  document.getElementById("frac2").textContent=coll+" / "+SHARE_TOTAL;
+  document.getElementById("frac2").textContent=coll+" / "+TOTAL;
   document.getElementById("mast2").textContent=mast;
   document.getElementById("lost2").textContent=lost;
   const vl=document.getElementById("vlist");
-  vl.innerHTML=SHARE_V.map(v=>`<div class='vrow'><span><span class='dot' style="background:${VC[v]}"></span>${v}</span><b>${vcount[v][0]}/${vcount[v][1]}</b></div>`).join("");
+  vl.innerHTML=V.map(v=>`<div class='vrow'><span><span class='dot' style="background:${VC[v]}"></span>${v}${isSoon(v)?" <em class='soonmini'>soon</em>":""}</span><b>${vcount[v][0]}/${vcount[v][1]}</b></div>`).join("");
 }
 
 document.getElementById("filters").addEventListener("click",e=>{
@@ -812,7 +819,8 @@ function showVarPop(th){
   document.getElementById("vSample").style.background =
     `radial-gradient(120% 120% at 50% 20%, ${VC[v]}33, #0b1030 72%)`;
   document.getElementById("vName").textContent = vi.t+" variant";
-  document.getElementById("vDesc").textContent = vi.d;
+  document.getElementById("vDesc").textContent =
+    (isSoon(v) ? "Coming soon \u2014 not in the game yet. " : "") + vi.d;
   vpop.classList.add("show");
   positionPop(vpop, th);
 }
@@ -833,7 +841,7 @@ async function exportImage(){
     const rowsHtml = ROWS.map(r=>{
       const info=INFO[r.key]||{}; const rar=(info.rarity||"Unknown").split(" ")[0];
       let cellsHtml="";
-      for(const v of SHARE_V){
+      for(const v of V){
         const file=r.cells[v];
         if(!file) continue;
         tot++;
@@ -854,7 +862,7 @@ async function exportImage(){
       <div class="xsub">Every Fortnite sprite &amp; variant &mdash; collected vs. missing</div>
       <div class="xbarwrap"><div class="xbar" style="width:${pct}%"></div></div>
       <div class="xcount">${coll} / ${tot} &middot; ${pct}%</div>
-      <div class="xlegend">${SHARE_V.map(v=>`<span class="xchip" style="--cc:${VC[v]}"><i></i>${v}</span>`).join("")}</div>
+      <div class="xlegend">${V.map(v=>`<span class="xchip" style="--cc:${VC[v]}"><i></i>${v}</span>`).join("")}</div>
       ${rowsHtml}
       <div class="xfoot">${SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,"")}</div>
     </div>`;
@@ -886,7 +894,7 @@ function discordText(){
   let coll=0, tot=0;
   for(const r of ROWS){
     const cells=[];
-    for(const v of SHARE_V){
+    for(const v of V){
       if(!r.cells[v]) continue;
       tot++;
       const s=st(r.key,v);

@@ -11,7 +11,7 @@ two with a short-lived one-time code from `/synccode`.
 Commands:
   /collection [user]                Show your collection grid (or another user's).
   /mark <sprite> <variant> <state>  Set one cell: have / mastered / lost / need.
-  /markrow <sprite> <state>         Set every released variant of a sprite at once.
+  /markrow <sprite> <state>         Set every available variant of a sprite at once.
   /synccode                         Get a one-time code to link the web tracker.
   /reset                            Clear your whole collection.
   /sprite <sprite>                  Show info/lore about a sprite.
@@ -34,7 +34,7 @@ import discord
 from aiohttp import web
 from discord import app_commands
 
-WEBSITE_URL = "https://logdegret.github.io/FortniteSprites/"
+WEBSITE_URL = "https://logdegret.github.io/spritet3ch/"
 API_PORT = int(os.environ.get("API_PORT", "8080"))
 SYNC_CODE_TTL = 10 * 60  # seconds
 
@@ -44,20 +44,7 @@ DATA = json.loads((BASE / "sprites.json").read_text())
 VARIANTS = DATA["variants"]                      # e.g. ["Normal","Gold",...]
 SPRITES = DATA["sprites"]                          # list of dicts
 BY_KEY = {s["key"]: s for s in SPRITES}
-
-# Datamined but not live in-game yet. Kept out of every grid, command and count so
-# nobody can "collect" something that doesn't exist. Must match UNRELEASED_V in
-# gen_html.py — drop an entry from both the day it actually ships.
-UNRELEASED = {"Gem", "Quack"}
-SHARE_VARIANTS = [v for v in VARIANTS if v not in UNRELEASED]
-
-
-def live_variants(s: dict) -> list:
-    """Released variants this sprite actually has."""
-    return [v for v in s["available"] if v not in UNRELEASED]
-
-
-TOTAL = sum(len(live_variants(s)) for s in SPRITES)
+TOTAL = DATA["total"]
 
 COLL_STORE = BASE / "collections.json"
 SESSION_STORE = BASE / "sessions.json"
@@ -105,7 +92,7 @@ def render_grid(uid, display_name: str) -> str:
     have = 0
     for s in SPRITES:
         cells = []
-        for v in live_variants(s):
+        for v in s["available"]:
             st = cell_state(coll, s["key"], v)
             cells.append(v + SYM.get(st, SYM["need"]))
             if st in ("own", "master"):
@@ -114,7 +101,11 @@ def render_grid(uid, display_name: str) -> str:
     lines.append("")
     lines.append(f"{have}/{TOTAL} collected")
     body = "\n".join(lines)
-    return f"**{display_name}'s Sprite Locker**\n```\n{body}\n```"
+    # URL sits outside the code block so Discord renders it as a real link
+    return (
+        f"**{display_name}'s Sprite Locker**\n```\n{body}\n```\n"
+        f"Track your sprites at {WEBSITE_URL}"
+    )
 
 
 # ---------------------------------------------------------------- discord client
@@ -123,7 +114,7 @@ intents.members = True   # needed for the on-join welcome DM — enable "Server 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-VARIANT_CHOICES = [app_commands.Choice(name=v, value=v) for v in SHARE_VARIANTS]
+VARIANT_CHOICES = [app_commands.Choice(name=v, value=v) for v in VARIANTS]
 SPRITE_CHOICES = [app_commands.Choice(name=s["name"], value=s["key"]) for s in SPRITES][:25]
 STATE_CHOICES = [
     app_commands.Choice(name="Have ✅", value="own"),
@@ -175,11 +166,6 @@ async def mark(
     state: app_commands.Choice[str],
 ):
     s = BY_KEY[sprite.value]
-    if variant.value in UNRELEASED:
-        await interaction.response.send_message(
-            f"🚫 **{variant.value}** isn't in the game yet — nothing to collect.", ephemeral=True
-        )
-        return
     if variant.value not in s["available"]:
         await interaction.response.send_message(
             f"🚫 **{s['name']} — {variant.value}** isn't an available variant.", ephemeral=True
@@ -197,7 +183,7 @@ async def mark(
     )
 
 
-@tree.command(name="markrow", description="Set every released variant of a sprite at once.")
+@tree.command(name="markrow", description="Set every available variant of a sprite at once.")
 @app_commands.choices(sprite=SPRITE_CHOICES, state=STATE_CHOICES)
 async def markrow(
     interaction: discord.Interaction,
@@ -206,8 +192,7 @@ async def markrow(
 ):
     s = BY_KEY[sprite.value]
     coll = user_coll(interaction.user.id)
-    live = live_variants(s)
-    for v in live:
+    for v in s["available"]:
         k = f"{sprite.value}|{v}"
         if state.value == "need":
             coll.pop(k, None)
@@ -215,7 +200,7 @@ async def markrow(
             coll[k] = state.value
     save_collections()
     await interaction.response.send_message(
-        f"Set all {len(live)} variants of **{s['name']}** → {STATE_LABEL[state.value]}",
+        f"Set all {len(s['available'])} variants of **{s['name']}** → {STATE_LABEL[state.value]}",
         ephemeral=True,
     )
 
@@ -231,7 +216,7 @@ async def sprite_info(interaction: discord.Interaction, sprite: app_commands.Cho
     emb.add_field(name="Rarity", value=s["rarity"])
     if s.get("element"):
         emb.add_field(name="Element", value=s["element"])
-    emb.add_field(name="Variants", value=", ".join(live_variants(s)) or "—", inline=False)
+    emb.add_field(name="Variants", value=", ".join(s["available"]) or "—", inline=False)
     await interaction.response.send_message(embed=emb)
 
 
