@@ -411,7 +411,7 @@ HTML = r'''<!DOCTYPE html>
     <span class="k"><span class="swatch sw-lost">&#10006;</span>Lost</span>
     <span class="k"><span class="swatch sw-missing"></span>Missing</span>
     <span class="k"><span class="swatch sw-na"></span>Not available</span>
-    <span class="k"><span class="swatch sw-soon">&#128337;</span>Coming soon</span>
+    <span class="k" id="keySoon"><span class="swatch sw-soon">&#128337;</span>Coming soon</span>
     <span class="k" style="margin-left:auto">Hover for info &amp; options &middot; click to mark &middot; double-click to master</span>
   </div>
 
@@ -513,8 +513,9 @@ const VINFO = {
 const V = DATA.variants, VC = DATA.vcolor, ROWS = DATA.rows, TOTAL = DATA.total;
 /* Datamined, not live in-game yet: fully trackable, but flagged "coming soon"
    so nobody reads them as variants they simply failed to collect. Empty this
-   list the day they ship. */
-const SOON_V = ["Gem","Quack"];
+   list the day they ship. Gem + Quack Zero Point went live in v41.30 on
+   2026-07-30, so this is empty until the next unreleased wave. */
+const SOON_V = [];
 const isSoon = v => SOON_V.includes(v);
 const KEY = "spriteLocker.v2";
 let state = {};                 // "s|v" -> "own"|"master"|"lost"
@@ -602,6 +603,7 @@ document.getElementById("syncBackdrop").addEventListener("click", e=>{ if(e.targ
 document.getElementById("syncInput")?.addEventListener("keydown", e=>{ if(e.key==="Enter") submitSync(); });
 
 function build(){
+  document.getElementById("keySoon").style.display = SOON_V.length ? "" : "none";
   const t = document.getElementById("grid");
   let h = "<thead><tr><th class='corner'>Sprite</th>";
   for(const v of V){ h += `<th class='vh${isSoon(v)?" soon":""}' data-v='${v}' style="background:linear-gradient(180deg,${VC[v]},${VC[v]}cc)">${v} &#9432;${isSoon(v)?"<i class='soontag'>Coming soon</i>":""}</th>`; }
